@@ -159,7 +159,11 @@ Ask Claude to remember your patterns:
 - "My main death loop is Telegram ↔ Terminal"
 
 ### Focus Apps
-Use insights to configure Cold Turkey, RescueTime, or macOS Focus Modes.
+Use insights to configure blocking tools. See `references/blocking_guides.md` for step-by-step setup:
+- macOS Focus Mode
+- Cold Turkey (cross-platform)
+- iOS Screen Time / Android Digital Wellbeing
+- Browser extensions (LeechBlock, StayFocusd)
 
 ## Files
 
@@ -170,7 +174,8 @@ activitywatch-analysis/
 │   ├── analyze_aw.py             # Main analyzer
 │   └── category_config.json      # Customizable categories
 └── references/
-    └── analysis_prompts.md       # Prompts for deeper analysis
+    ├── analysis_prompts.md       # Prompts for deeper analysis
+    └── blocking_guides.md        # How to implement blocking recommendations
 ```
 
 ## Privacy
