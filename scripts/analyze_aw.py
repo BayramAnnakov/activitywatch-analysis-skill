@@ -61,7 +61,151 @@ CATEGORY_RULES = dict(DEFAULT_CATEGORY_RULES)  # Mutable copy, will be updated w
 
 # Apps that should have title-level breakdown
 BROWSER_APPS = ["Google Chrome", "Safari", "Firefox", "Arc", "Brave", "Edge",
-                "ChatGPT Atlas", "Opera", "Vivaldi"]
+                "ChatGPT Atlas", "Opera", "Vivaldi", "Chromium"]
+
+# ============================================================================
+# SITE EXTRACTION FROM BROWSER TITLES
+# ============================================================================
+
+# Known sites by keyword in window title -> (site_name, category, weight)
+KNOWN_SITES = {
+    # Streaming / Entertainment
+    'netflix': ('Netflix', 'entertainment', -0.5),
+    'prime video': ('Prime Video', 'entertainment', -0.5),
+    'paramount+': ('Paramount+', 'entertainment', -0.5),
+    'paramount plus': ('Paramount+', 'entertainment', -0.5),
+    'disney+': ('Disney+', 'entertainment', -0.5),
+    'hulu': ('Hulu', 'entertainment', -0.5),
+    'hbo max': ('HBO Max', 'entertainment', -0.5),
+    'twitch': ('Twitch', 'entertainment', -0.4),
+    'spotify': ('Spotify', 'entertainment', -0.3),
+
+    # AI Tools
+    'chatgpt': ('ChatGPT', 'ai_tools', 0.8),
+    'claude.ai': ('Claude.ai', 'ai_tools', 0.8),
+    'claude -': ('Claude.ai', 'ai_tools', 0.8),
+    'perplexity': ('Perplexity', 'ai_tools', 0.8),
+    'anthropic': ('Anthropic', 'ai_tools', 0.8),
+    'openai platform': ('OpenAI', 'ai_tools', 0.8),
+    'openai api': ('OpenAI', 'ai_tools', 0.8),
+    'google ai studio': ('Google AI Studio', 'ai_tools', 0.8),
+    'langsmith': ('LangSmith', 'ai_tools', 0.8),
+    'langchain': ('LangChain', 'ai_tools', 0.8),
+
+    # Development
+    'github': ('GitHub', 'development', 0.9),
+    'gitlab': ('GitLab', 'development', 0.9),
+    'localhost': ('Localhost', 'development', 1.0),
+    '127.0.0.1': ('Localhost', 'development', 1.0),
+    'supabase': ('Supabase', 'development', 0.8),
+    'vercel': ('Vercel', 'development', 0.8),
+    'netlify': ('Netlify', 'development', 0.8),
+    'fly.io': ('Fly.io', 'development', 0.8),
+    'railway': ('Railway', 'development', 0.8),
+    'render.com': ('Render', 'development', 0.8),
+    'heroku': ('Heroku', 'development', 0.8),
+    'aws console': ('AWS', 'development', 0.8),
+    'stack overflow': ('Stack Overflow', 'development', 0.8),
+    'stackoverflow': ('Stack Overflow', 'development', 0.8),
+    'devtools': ('DevTools', 'development', 0.9),
+    'pagespeed': ('PageSpeed', 'development', 0.7),
+    'n8n': ('n8n', 'development', 0.8),
+    'postman': ('Postman', 'development', 0.8),
+
+    # Design
+    'figma': ('Figma', 'design', 0.9),
+    'miro': ('Miro', 'design', 0.8),
+    'canva': ('Canva', 'design', 0.8),
+    'webflow': ('Webflow', 'design', 0.9),
+    'framer': ('Framer', 'design', 0.9),
+
+    # Writing & Docs
+    'google docs': ('Google Docs', 'writing', 0.9),
+    'notion': ('Notion', 'writing', 0.9),
+    'obsidian': ('Obsidian', 'writing', 0.9),
+    'medium': ('Medium', 'reading', 0.5),
+    'substack': ('Substack', 'reading', 0.5),
+
+    # Productivity
+    'google sheets': ('Google Sheets', 'spreadsheets', 0.6),
+    'google slides': ('Google Slides', 'presentations', 0.7),
+    'google calendar': ('Google Calendar', 'productivity', 0.5),
+    'airtable': ('Airtable', 'productivity', 0.6),
+    'linear': ('Linear', 'productivity', 0.7),
+    'jira': ('Jira', 'productivity', 0.6),
+    'asana': ('Asana', 'productivity', 0.6),
+
+    # Communication
+    'gmail': ('Gmail', 'email', 0.3),
+    'outlook': ('Outlook', 'email', 0.3),
+    'slack': ('Slack', 'communication', 0.3),
+    'discord': ('Discord', 'communication', 0.2),
+
+    # Social Media
+    'twitter': ('Twitter/X', 'social_media', -0.3),
+    ' / x': ('Twitter/X', 'social_media', -0.3),
+    'x.com': ('Twitter/X', 'social_media', -0.3),
+    'linkedin': ('LinkedIn', 'social_media', -0.2),
+    'facebook': ('Facebook', 'social_media', -0.3),
+    'instagram': ('Instagram', 'social_media', -0.3),
+    'reddit': ('Reddit', 'social_media', -0.3),
+    'tiktok': ('TikTok', 'social_media', -0.4),
+
+    # Learning
+    'coursera': ('Coursera', 'learning', 0.8),
+    'udemy': ('Udemy', 'learning', 0.8),
+    'arxiv': ('arXiv', 'learning', 0.9),
+    'deeplearning.ai': ('DeepLearning.AI', 'learning', 0.8),
+
+    # News
+    'hacker news': ('Hacker News', 'news', 0.2),
+    'techcrunch': ('TechCrunch', 'news', 0.1),
+
+    # Business
+    'stripe': ('Stripe', 'business', 0.6),
+    'paypal': ('PayPal', 'business', 0.5),
+    'hubspot': ('HubSpot', 'business', 0.5),
+    'salesforce': ('Salesforce', 'business', 0.5),
+    'google analytics': ('Google Analytics', 'business', 0.6),
+    'mixpanel': ('Mixpanel', 'business', 0.6),
+
+    # Video (mixed - could be work or entertainment)
+    'youtube': ('YouTube', 'video', 0.0),  # Neutral - could be learning or entertainment
+    'loom': ('Loom', 'video', 0.6),
+    'vimeo': ('Vimeo', 'video', 0.3),
+}
+
+def extract_site_from_title(title: str) -> Tuple[str, str, float]:
+    """
+    Extract site name from browser window title.
+    Returns (site_name, category, weight).
+    """
+    title_lower = title.lower()
+
+    # Check known sites
+    for keyword, (site, category, weight) in KNOWN_SITES.items():
+        if keyword in title_lower:
+            return (site, category, weight)
+
+    # Try to extract site from common title patterns
+    # "Page Title - Site Name" or "Page Title | Site Name"
+    for separator in [' - ', ' | ', ' – ', ' — ']:
+        if separator in title:
+            parts = title.rsplit(separator, 1)
+            if len(parts) == 2 and len(parts[1]) < 40:
+                site_name = parts[1].strip()
+                # Check if extracted part is a known site
+                site_lower = site_name.lower()
+                for keyword, (site, category, weight) in KNOWN_SITES.items():
+                    if keyword in site_lower:
+                        return (site, category, weight)
+                return (site_name, 'uncategorized', 0.0)
+
+    # Fallback: use truncated title
+    if len(title) > 40:
+        return (title[:37] + '...', 'uncategorized', 0.0)
+    return (title if title else 'Unknown', 'uncategorized', 0.0)
+
 
 # ============================================================================
 # AI AGENT DETECTION
@@ -154,6 +298,10 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None, tz_name: Opt
     browser_titles = defaultdict(float)
     browser_title_categories = defaultdict(lambda: defaultdict(float))
 
+    # Site-level tracking for browsers (aggregated by domain/site)
+    browser_sites = defaultdict(lambda: {"time": 0.0, "category": "", "weight": 0.0})
+    browser_total_time = 0.0
+
     # AI Agent tracking
     ai_agent_time = defaultdict(float)  # agent_name -> total seconds
     ai_assisted_switches = []  # switches that occurred during AI agent sessions
@@ -230,11 +378,18 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None, tz_name: Opt
             
             # Browser title breakdown
             if app in BROWSER_APPS:
+                browser_total_time += duration
                 # Normalize title (take first 60 chars, clean up)
                 clean_title = title[:60].strip()
                 if clean_title and clean_title not in ['New Tab', 'Untitled', '']:
                     browser_titles[clean_title] += duration
                     browser_title_categories[category][clean_title] += duration
+
+                    # Extract site and aggregate
+                    site_name, site_cat, site_weight = extract_site_from_title(title)
+                    browser_sites[site_name]["time"] += duration
+                    browser_sites[site_name]["category"] = site_cat
+                    browser_sites[site_name]["weight"] = site_weight
             
             # Productivity calculation (only for active categories)
             if category not in ['system', 'browser_idle']:
@@ -467,7 +622,30 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None, tz_name: Opt
             }
             for title, secs in sorted_browser
         ],
-        
+
+        "browser_sites": sorted(
+            [
+                {
+                    "site": site,
+                    "hours": round(data["time"] / 3600, 2),
+                    "category": data["category"],
+                    "weight": data["weight"],
+                    "productive": "yes" if data["weight"] >= 0.5 else ("neutral" if data["weight"] >= 0 else "no")
+                }
+                for site, data in browser_sites.items()
+            ],
+            key=lambda x: -x["hours"]
+        )[:20],
+
+        "browser_productivity": {
+            "total_hours": round(browser_total_time / 3600, 2),
+            "productive_hours": round(sum(d["time"] for d in browser_sites.values() if d["weight"] >= 0.5) / 3600, 2),
+            "neutral_hours": round(sum(d["time"] for d in browser_sites.values() if 0 <= d["weight"] < 0.5) / 3600, 2),
+            "distracting_hours": round(sum(d["time"] for d in browser_sites.values() if d["weight"] < 0) / 3600, 2),
+            "productive_pct": round(sum(d["time"] for d in browser_sites.values() if d["weight"] >= 0.5) / max(1, browser_total_time) * 100, 1),
+            "distracting_pct": round(sum(d["time"] for d in browser_sites.values() if d["weight"] < 0) / max(1, browser_total_time) * 100, 1),
+        },
+
         "hourly_analysis": {
             "peak_productive_hours": [
                 {"hour": h, **data} for h, data in peak_hours
@@ -638,13 +816,32 @@ def format_report(summary: dict) -> str:
         report.append(f"| {cat['category']} | {cat['hours']}h | {cat['percentage']}% | {cat_type} |")
     report.append("")
     
-    # Browser breakdown
-    if summary['browser_breakdown']:
-        report.append("## 🌐 Browser Activity Breakdown\n")
-        report.append("| Activity | Hours | Category |")
-        report.append("|----------|-------|----------|")
-        for item in summary['browser_breakdown'][:15]:
-            report.append(f"| {item['title'][:50]} | {item['hours']}h | {item['category']} |")
+    # Browser productivity overview
+    browser_prod = summary.get('browser_productivity', {})
+    if browser_prod.get('total_hours', 0) > 0:
+        report.append("## 🌐 Browser Activity\n")
+        report.append(f"**Total browser time:** {browser_prod['total_hours']}h\n")
+        report.append("| Type | Hours | % |")
+        report.append("|------|-------|---|")
+        report.append(f"| 🟢 Productive | {browser_prod['productive_hours']}h | {browser_prod['productive_pct']}% |")
+        report.append(f"| 🟡 Neutral | {browser_prod['neutral_hours']}h | {round(100 - browser_prod['productive_pct'] - browser_prod['distracting_pct'], 1)}% |")
+        report.append(f"| 🔴 Distracting | {browser_prod['distracting_hours']}h | {browser_prod['distracting_pct']}% |")
+        report.append("")
+
+    # Browser sites breakdown
+    browser_sites = summary.get('browser_sites', [])
+    if browser_sites:
+        report.append("### Top Sites\n")
+        report.append("| Site | Hours | Category | Type |")
+        report.append("|------|-------|----------|------|")
+        for item in browser_sites[:15]:
+            if item['productive'] == 'yes':
+                prod_icon = "🟢"
+            elif item['productive'] == 'neutral':
+                prod_icon = "🟡"
+            else:
+                prod_icon = "🔴"
+            report.append(f"| {item['site'][:35]} | {item['hours']}h | {item['category']} | {prod_icon} |")
         report.append("")
     
     # AI-Assisted Development (if detected)

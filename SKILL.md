@@ -12,7 +12,7 @@ Analyze ActivityWatch exports to identify focus problems, track productivity, an
 - **Smart Auto-Categorization**: Classifies activities into productive/neutral/distracting
 - **AI Agent Detection**: Recognizes Claude Code, Codex, Aider, and other AI coding agents
 - **Dual Scoring**: Productivity score (what you worked on) + Focus score (attention quality)
-- **Browser Breakdown**: See exactly what you did inside browsers
+- **Deep Browser Analysis**: Site-level breakdown with productivity ratios (Netflix, GitHub, ChatGPT, etc.)
 - **Death Loop Detection**: Identifies repetitive app switching patterns with fix suggestions
 - **Actionable Insights**: Specific recommendations based on your data
 - **Customizable Categories**: JSON config to tune for your workflow
@@ -108,6 +108,50 @@ Common patterns:
 - **Browser ↔ IDE**: Testing/debugging → Use split screen
 - **Email ↔ Work**: Anxiety/FOMO → Close email, check 2x/day
 - **Social ↔ Anything**: Procrastination → Block during focus hours
+
+## Browser Analysis
+
+Browser time is often 30-50% of screen time. The analyzer extracts **sites** from window titles and categorizes them:
+
+### Site Categories
+
+| Category | Examples | Weight |
+|----------|----------|--------|
+| AI Tools | ChatGPT, Claude.ai, Perplexity | 🟢 0.8 |
+| Development | GitHub, Supabase, localhost | 🟢 0.8-1.0 |
+| Design | Figma, Webflow, Canva | 🟢 0.9 |
+| Entertainment | Netflix, Prime Video, Twitch | 🔴 -0.5 |
+| Social Media | Twitter/X, LinkedIn, Reddit | 🔴 -0.3 |
+| Video | YouTube (neutral - could be either) | 🟡 0.0 |
+
+### Report Output
+
+```
+## 🌐 Browser Activity
+
+**Total browser time:** 66.1h
+
+| Type | Hours | % |
+|------|-------|---|
+| 🟢 Productive | 11.9h | 18% |
+| 🟡 Neutral | 25.9h | 41% |
+| 🔴 Distracting | 27.0h | 41% |
+
+### Top Sites
+| Site | Hours | Category | Type |
+|------|-------|----------|------|
+| Netflix | 11.9h | entertainment | 🔴 |
+| YouTube | 7.8h | video | 🟡 |
+| ChatGPT | 1.9h | ai_tools | 🟢 |
+```
+
+### Customizing Site Categories
+
+Add sites to `KNOWN_SITES` in `analyze_aw.py`:
+
+```python
+'mysite.com': ('MySite', 'development', 0.8),
+```
 
 ## AI Agent Detection
 
