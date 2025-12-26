@@ -1,0 +1,142 @@
+{
+  "_comment": "Customize these categories for YOUR workflow. Weight scale: 1.0 = deep work, 0.5 = productive, 0.0 = neutral, -0.5 = distracting",
+  
+  "deep_work": {
+    "weight": 1.0,
+    "description": "Core productive work - coding, building",
+    "apps": ["Terminal", "Cursor", "Code", "VSCode", "PyCharm", "IntelliJ", "Xcode", "nvim", "vim", "emacs", "Warp", "iTerm2"],
+    "titles": ["claude code", "git ", "python", "node ", "npm ", "cargo ", "make ", "docker"]
+  },
+  
+  "ai_tools": {
+    "weight": 0.8,
+    "description": "AI assistants and platforms",
+    "apps": ["Claude"],
+    "titles": ["ChatGPT", "Claude", "OpenAI Platform", "Google AI Studio", "LangSmith", "Anthropic", "Perplexity"]
+  },
+  
+  "development": {
+    "weight": 0.8,
+    "description": "Dev tools, databases, infrastructure",
+    "apps": ["DBeaver", "Postman", "TablePlus", "Sequel Pro", "pgAdmin", "Docker Desktop"],
+    "titles": ["Supabase", "Firebase", "Vercel", "Netlify", "localhost", "127.0.0.1", "GitHub", "GitLab", 
+               "PageSpeed", "DevTools", "Fly.io", "Railway", "Render", "AWS", "n8n"]
+  },
+  
+  "writing": {
+    "weight": 0.9,
+    "description": "Writing and note-taking",
+    "apps": ["Notion", "Obsidian", "Bear", "Ulysses", "iA Writer", "Notes", "TextEdit", "Craft"],
+    "titles": ["Google Docs", "Notion –", "Obsidian"]
+  },
+  
+  "design": {
+    "weight": 0.9,
+    "description": "Design and visual work",
+    "apps": ["Figma", "Sketch", "Adobe XD", "Photoshop", "Illustrator", "Canva", "Framer"],
+    "titles": ["Figma", "Canva", "Webflow", "Framer"]
+  },
+  
+  "presentations": {
+    "weight": 0.7,
+    "description": "Slide decks and presentations",
+    "apps": ["Keynote", "Microsoft PowerPoint", "Google Slides"],
+    "titles": ["Google Slides", "Pitch –", "Gamma"]
+  },
+  
+  "spreadsheets": {
+    "weight": 0.6,
+    "description": "Data and spreadsheets",
+    "apps": ["Numbers", "Microsoft Excel"],
+    "titles": ["Google Sheets", "Airtable"]
+  },
+  
+  "meetings": {
+    "weight": 0.5,
+    "description": "Video calls and meetings",
+    "apps": ["zoom.us", "Zoom", "Google Meet", "Microsoft Teams", "Slack Huddle", "Around", "Loom"],
+    "titles": ["Zoom Meeting", "Google Meet", "Teams Meeting"]
+  },
+  
+  "communication_work": {
+    "weight": 0.3,
+    "description": "Work messaging",
+    "apps": ["Slack", "Discord"],
+    "titles": ["Slack |", "Discord |"]
+  },
+  
+  "communication_personal": {
+    "weight": 0.1,
+    "description": "Personal messaging",
+    "apps": ["Telegram", "Messages", "WhatsApp", "Signal"],
+    "titles": []
+  },
+  
+  "email": {
+    "weight": 0.3,
+    "description": "Email clients and webmail",
+    "apps": ["Mail", "Outlook", "Spark", "Superhuman"],
+    "titles": ["Gmail", "Inbox", "Outlook", "ProtonMail"]
+  },
+  
+  "learning": {
+    "weight": 0.7,
+    "description": "Courses, tutorials, documentation",
+    "apps": [],
+    "titles": ["Coursera", "Udemy", "LinkedIn Learning", "tutorial", "course", 
+               "documentation", "docs.", "MDN", "Stack Overflow", "Medium –"]
+  },
+  
+  "business_tools": {
+    "weight": 0.5,
+    "description": "Business and analytics tools",
+    "apps": ["Stripe"],
+    "titles": ["Stripe", "PayPal", "Google Calendar", "Calendly", "HubSpot", "Salesforce", 
+               "Google Analytics", "Mixpanel", "Amplitude", "Linear", "Jira", "Asana"]
+  },
+  
+  "content_creation": {
+    "weight": 0.7,
+    "description": "Creating content for publishing",
+    "apps": [],
+    "titles": ["YouTube Studio", "Creator Studio", "Descript", "Channel content"]
+  },
+  
+  "social_media": {
+    "weight": -0.3,
+    "description": "Social media browsing",
+    "apps": [],
+    "titles": ["Twitter", "Home / X", "LinkedIn Feed", "Facebook", "Instagram", "TikTok", "Reddit"]
+  },
+  
+  "entertainment": {
+    "weight": -0.5,
+    "description": "Streaming and entertainment",
+    "apps": ["Netflix", "Spotify", "Apple Music", "VLC", "IINA", "Apple TV"],
+    "titles": ["Netflix", "Prime Video", "Hulu", "Disney+", "HBO", "Paramount+", 
+               "Twitch", "Watch ", "Playing", "YouTube –"]
+  },
+  
+  "news": {
+    "weight": -0.2,
+    "description": "News and current events",
+    "apps": [],
+    "titles": ["News", "CNN", "BBC", "NYT", "WSJ", "Reuters", "Hacker News", "TechCrunch"]
+  },
+  
+  "system": {
+    "weight": 0.0,
+    "description": "System utilities (excluded from scoring)",
+    "apps": ["loginwindow", "Finder", "System Preferences", "System Settings", "Activity Monitor", 
+             "SystemUIServer", "UserNotificationCenter", "Spotlight", "Alfred", "Raycast", 
+             "Nimble Commander", "Preview", "1Password", "Bitwarden"],
+    "titles": ["Finder", "Desktop", "ActivityWatch"]
+  },
+  
+  "browser_idle": {
+    "weight": 0.0,
+    "description": "Empty browser tabs",
+    "apps": [],
+    "titles": ["New Tab", "Untitled", "about:blank", "Start Page"]
+  }
+}

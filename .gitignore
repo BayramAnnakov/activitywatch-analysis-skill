@@ -1,0 +1,25 @@
+# ActivityWatch exports (contain personal data)
+*.csv
+export*.json
+
+# Analysis outputs
+summary.json
+report.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
