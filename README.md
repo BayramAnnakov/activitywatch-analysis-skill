@@ -5,11 +5,13 @@ A Claude Code skill for weekly productivity analysis using [ActivityWatch](https
 ## Features
 
 - **Smart Auto-Categorization**: Classifies activities into productive/neutral/distracting
+- **AI Agent Detection**: Recognizes Claude Code, Codex, Aider, GitHub Copilot as productive workflows
 - **Dual Scoring**: Productivity score (what you worked on) + Focus score (attention quality)
-- **Browser Breakdown**: See exactly what you did inside browsers
+- **Deep Browser Analysis**: Site-level breakdown (Netflix, GitHub, ChatGPT) with productivity ratios
 - **Death Loop Detection**: Identifies repetitive app switching patterns with fix suggestions
-- **Actionable Insights**: Specific recommendations based on your data
+- **Actionable Insights**: Specific recommendations with blocking guides
 - **Customizable Categories**: JSON config to tune for your workflow
+- **Timezone Support**: Correctly handles ActivityWatch UTC timestamps
 
 ## Requirements
 
@@ -26,15 +28,26 @@ Open ActivityWatch (`http://localhost:5600`) → Raw Data → Export → CSV
 ### 2. Run Analysis
 
 ```bash
-# Basic analysis (JSON output)
-python scripts/analyze_aw.py export.csv
-
-# Human-readable report
+# Human-readable report (uses system timezone)
 python scripts/analyze_aw.py export.csv --report
+
+# With explicit timezone
+python scripts/analyze_aw.py export.csv --timezone America/Los_Angeles --report
 
 # With custom categories
 python scripts/analyze_aw.py export.csv --config scripts/category_config.json --report
+
+# JSON output for automation
+python scripts/analyze_aw.py export.csv > summary.json
 ```
+
+### Recommended Workflow
+
+Before trusting a weekly report, spot-check with a single day's data:
+
+1. **Spot-check first**: Verify timezone, idle time, and categories match your experience
+2. **Fix issues**: Adjust timezone or config if needed
+3. **Run full analysis**: Once validated, trust the weekly report
 
 ## Understanding Your Scores
 
@@ -60,9 +73,12 @@ Death loops are repetitive A↔B app switches that fragment your attention.
 
 | Verdict | Meaning | Action |
 |---------|---------|--------|
-| productive | Normal workflow (IDE ↔ Terminal) | Consider split screen |
-| mixed | Could go either way | Batch these activities |
-| distracting | Attention leak | Block during focus hours |
+| 🤖 ai_assisted | AI coding agent active (Claude Code, Codex) | Productive workflow |
+| 🟢 productive | Normal workflow (IDE ↔ Terminal) | Consider split screen |
+| 🟡 mixed | Could go either way | Batch these activities |
+| 🔴 distracting | Attention leak | Block during focus hours |
+
+See `references/blocking_guides.md` for step-by-step setup of macOS Focus Mode, Cold Turkey, and other blocking tools.
 
 ## Customizing Categories
 
@@ -114,10 +130,11 @@ activitywatch-analysis-skill/
 ├── SKILL.md                      # Skill definition (AgentSkills.io format)
 ├── README.md                     # This file
 ├── scripts/
-│   ├── analyze_aw.py             # Main analyzer
+│   ├── analyze_aw.py             # Main analyzer (928 lines)
 │   └── category_config.json      # Customizable categories
 └── references/
-    └── analysis_prompts.md       # Prompts for deeper analysis with LLMs
+    ├── analysis_prompts.md       # Prompts for deeper analysis with LLMs
+    └── blocking_guides.md        # How to implement blocking recommendations
 ```
 
 ## Privacy

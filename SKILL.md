@@ -39,6 +39,22 @@ python scripts/analyze_aw.py export.csv --config scripts/category_config.json --
 python scripts/analyze_aw.py export.csv > summary.json
 ```
 
+### Recommended Workflow
+
+Before trusting a weekly report, spot-check with a single day's data:
+
+1. **Spot-check first** (5 min): Analyze yesterday's data
+   - Verify timezone is correct (timestamps match your memory)
+   - Verify idle time makes sense (screen lock duration)
+   - Check if top apps/categories match your experience
+
+2. **Fix issues if found**:
+   - Wrong timezone? Use `--timezone America/Los_Angeles` (or your zone)
+   - Missing apps? Add them to `scripts/category_config.json`
+   - Wrong categories? Adjust weights in config
+
+3. **Run full analysis**: Once spot-check passes, trust the weekly report
+
 ### Timezone Handling
 
 ActivityWatch stores timestamps in UTC. The analyzer converts them to your local timezone for accurate hourly analysis.
