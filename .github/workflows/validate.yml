@@ -1,0 +1,32 @@
+name: Validate Skill
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install skills-ref
+        run: |
+          pip install git+https://github.com/agentskills/agentskills.git#subdirectory=skills-ref
+
+      - name: Validate skill
+        run: |
+          skills-ref validate .
+
+      - name: Show skill properties
+        run: |
+          skills-ref read-properties .
