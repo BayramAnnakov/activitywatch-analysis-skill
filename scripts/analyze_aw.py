@@ -11,10 +11,11 @@ import csv
 import json
 import re
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
+from zoneinfo import ZoneInfo
 
 # ============================================================================
 # CATEGORIZATION CONFIG - Customize these for your workflow
@@ -120,8 +121,24 @@ def categorize_activity(app: str, title: str) -> Tuple[str, float]:
     return "uncategorized", 0.0
 
 
-def analyze_csv_enhanced(filepath: str, days: Optional[int] = None) -> dict:
-    """Enhanced analysis with categorization and AI agent detection."""
+def analyze_csv_enhanced(filepath: str, days: Optional[int] = None, tz_name: Optional[str] = None) -> dict:
+    """Enhanced analysis with categorization and AI agent detection.
+
+    Args:
+        filepath: Path to ActivityWatch CSV export
+        days: Optional number of days to analyze (from most recent)
+        tz_name: Timezone name (e.g., 'America/Los_Angeles'). Defaults to system local.
+    """
+
+    # Set up timezone
+    if tz_name:
+        try:
+            local_tz = ZoneInfo(tz_name)
+        except Exception:
+            print(f"Warning: Unknown timezone '{tz_name}', using system local", file=sys.stderr)
+            local_tz = datetime.now().astimezone().tzinfo
+    else:
+        local_tz = datetime.now().astimezone().tzinfo
 
     # Data structures
     app_time = defaultdict(float)
@@ -143,6 +160,10 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None) -> dict:
     current_ai_agent = None  # currently active AI agent (if any)
     terminal_titles_by_switch = {}  # switch_index -> terminal_title (for later analysis)
 
+    # Idle time tracking (loginwindow, screensaver, etc.)
+    idle_time = 0.0
+    idle_apps = {'loginwindow', 'ScreenSaverEngine', 'LockScreen'}
+
     # Activity details for productivity calculation
     weighted_time = 0.0
     total_active_time = 0.0
@@ -153,29 +174,32 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None) -> dict:
     
     cutoff = None
     if days:
-        cutoff = datetime.now(datetime.now().astimezone().tzinfo) - timedelta(days=days)
-    
+        cutoff = datetime.now(local_tz) - timedelta(days=days)
+
     with open(filepath, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
-        
+
         for row in reader:
             total_events += 1
-            
+
             ts_str = row.get('timestamp', '')
             try:
-                ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                # Parse UTC timestamp and convert to local timezone
+                ts_utc = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                ts = ts_utc.astimezone(local_tz)
             except:
                 continue
-            
+
             if cutoff and ts < cutoff:
                 continue
-                
+
             duration = float(row.get('duration', 0))
             app = row.get('app', 'Unknown')
             title = row.get('title', '')
-            
-            # Skip system idle
-            if app == 'loginwindow':
+
+            # Track idle time separately (loginwindow, screensaver, etc.)
+            if app in idle_apps:
+                idle_time += duration
                 continue
 
             # Detect AI agent in Terminal
@@ -187,19 +211,19 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None) -> dict:
 
             # Categorize
             category, weight = categorize_activity(app, title)
-            
+
             # Aggregate by app
             app_time[app] += duration
-            
+
             # Aggregate by category
             category_time[category] += duration
-            
-            # Aggregate by hour
+
+            # Aggregate by hour (using LOCAL timezone)
             hour = ts.hour
             hourly_activity[hour] += duration
             hourly_by_category[hour][category] += duration
-            
-            # Aggregate by day
+
+            # Aggregate by day (using LOCAL timezone)
             day = ts.strftime("%Y-%m-%d")
             daily_activity[day] += duration
             daily_by_category[day][category] += duration
@@ -408,8 +432,11 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None) -> dict:
         },
         
         "time_totals": {
-            "total_active_hours": round(total_time / 3600, 2),
-            "average_hours_per_day": round(total_time / 3600 / max(1, days_tracked), 2)
+            "tracked_hours": round((total_time + idle_time) / 3600, 2),
+            "active_hours": round(total_time / 3600, 2),
+            "idle_hours": round(idle_time / 3600, 2),
+            "average_active_per_day": round(total_time / 3600 / max(1, days_tracked), 2),
+            "timezone": str(local_tz)
         },
         
         "category_breakdown": [
@@ -573,7 +600,16 @@ def format_report(summary: dict) -> str:
     report = []
     report.append("# Weekly Focus Report\n")
     report.append(f"**Period:** {summary['period']['date_range']}")
-    report.append(f"**Days tracked:** {summary['period']['days_tracked']}\n")
+    report.append(f"**Days tracked:** {summary['period']['days_tracked']}")
+
+    # Time totals
+    time_totals = summary.get('time_totals', {})
+    tz = time_totals.get('timezone', 'Unknown')
+    tracked = time_totals.get('tracked_hours', 0)
+    active = time_totals.get('active_hours', 0)
+    idle = time_totals.get('idle_hours', 0)
+    report.append(f"**Timezone:** {tz}")
+    report.append(f"**Time:** {active:.1f}h active + {idle:.1f}h idle = {tracked:.1f}h tracked\n")
     
     # Scores
     scores = summary['scores']
@@ -659,29 +695,36 @@ def format_report(summary: dict) -> str:
 
 
 if __name__ == "__main__":
-    
+
     if len(sys.argv) < 2:
-        print("Usage: python analyze_aw.py <csv_file> [--report] [--config config.json]")
+        print("Usage: python analyze_aw.py <csv_file> [--report] [--config config.json] [--timezone America/Los_Angeles]")
         sys.exit(1)
-    
+
     filepath = sys.argv[1]
     output_report = "--report" in sys.argv
-    
+
     # Load custom config if provided
     config_path = None
     if "--config" in sys.argv:
         config_idx = sys.argv.index("--config")
         if config_idx + 1 < len(sys.argv):
             config_path = sys.argv[config_idx + 1]
-    
+
+    # Get timezone if provided (default: system local)
+    tz_name = None
+    if "--timezone" in sys.argv:
+        tz_idx = sys.argv.index("--timezone")
+        if tz_idx + 1 < len(sys.argv):
+            tz_name = sys.argv[tz_idx + 1]
+
     # Update CATEGORY_RULES module-level variable
     if config_path:
         loaded_rules = load_category_rules(config_path)
         CATEGORY_RULES.clear()
         CATEGORY_RULES.update(loaded_rules)
-    
-    summary = analyze_csv_enhanced(filepath)
-    
+
+    summary = analyze_csv_enhanced(filepath, tz_name=tz_name)
+
     if output_report:
         print(format_report(summary))
     else:

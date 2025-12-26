@@ -26,8 +26,11 @@ Open ActivityWatch (`http://localhost:5600`) → Raw Data → Export → CSV
 ### 2. Run Analysis
 
 ```bash
-# Basic analysis
+# Basic analysis (uses system timezone)
 python scripts/analyze_aw.py export.csv --report
+
+# Specify timezone explicitly
+python scripts/analyze_aw.py export.csv --timezone America/Los_Angeles --report
 
 # With custom categories
 python scripts/analyze_aw.py export.csv --config scripts/category_config.json --report
@@ -35,6 +38,30 @@ python scripts/analyze_aw.py export.csv --config scripts/category_config.json --
 # JSON output for automation
 python scripts/analyze_aw.py export.csv > summary.json
 ```
+
+### Timezone Handling
+
+ActivityWatch stores timestamps in UTC. The analyzer converts them to your local timezone for accurate hourly analysis.
+
+```bash
+# Common timezone examples:
+--timezone America/Los_Angeles  # Pacific Time
+--timezone America/New_York     # Eastern Time
+--timezone Europe/London        # UK
+--timezone Asia/Tokyo           # Japan
+```
+
+If not specified, the system's local timezone is used.
+
+### Time Breakdown
+
+The report shows three time metrics:
+
+| Metric | Meaning |
+|--------|---------|
+| **Active** | Time spent in apps (excluding idle) |
+| **Idle** | Screen locked / loginwindow time |
+| **Tracked** | Total time computer was on (active + idle) |
 
 ## Understanding Your Scores
 
