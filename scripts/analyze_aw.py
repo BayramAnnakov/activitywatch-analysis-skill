@@ -59,8 +59,43 @@ def load_category_rules(config_path: Optional[str] = None) -> dict:
 CATEGORY_RULES = dict(DEFAULT_CATEGORY_RULES)  # Mutable copy, will be updated when analyze is called
 
 # Apps that should have title-level breakdown
-BROWSER_APPS = ["Google Chrome", "Safari", "Firefox", "Arc", "Brave", "Edge", 
+BROWSER_APPS = ["Google Chrome", "Safari", "Firefox", "Arc", "Brave", "Edge",
                 "ChatGPT Atlas", "Opera", "Vivaldi"]
+
+# ============================================================================
+# AI AGENT DETECTION
+# ============================================================================
+
+def detect_ai_agent(title: str) -> Optional[str]:
+    """
+    Detect if a Terminal window title indicates an AI coding agent is running.
+    Returns agent name or None.
+
+    Supported agents:
+    - Claude Code: "✳ Task Name" prefix or "claude" in title
+    - OpenAI Codex CLI: "codex" in title
+    - Aider: "aider" in title
+    - Cursor Agent: "cursor" with agent indicators
+    """
+    title_lower = title.lower()
+
+    # Claude Code: Uses "✳" prefix for task names, or "claude" command
+    if '✳' in title or ('claude' in title_lower and 'code' not in title_lower):
+        return 'claude_code'
+
+    # OpenAI Codex CLI: "codex" in title
+    if 'codex' in title_lower:
+        return 'codex'
+
+    # Aider: "aider" in title
+    if 'aider' in title_lower:
+        return 'aider'
+
+    # GitHub Copilot CLI: "gh copilot" in title
+    if 'gh copilot' in title_lower or 'github copilot' in title_lower:
+        return 'copilot'
+
+    return None
 
 
 def categorize_activity(app: str, title: str) -> Tuple[str, float]:
@@ -86,8 +121,8 @@ def categorize_activity(app: str, title: str) -> Tuple[str, float]:
 
 
 def analyze_csv_enhanced(filepath: str, days: Optional[int] = None) -> dict:
-    """Enhanced analysis with categorization."""
-    
+    """Enhanced analysis with categorization and AI agent detection."""
+
     # Data structures
     app_time = defaultdict(float)
     category_time = defaultdict(float)
@@ -97,16 +132,23 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None) -> dict:
     daily_by_category = defaultdict(lambda: defaultdict(float))
     hourly_switches = defaultdict(int)
     switches = []
-    
+
     # Title-level tracking for browsers
     browser_titles = defaultdict(float)
     browser_title_categories = defaultdict(lambda: defaultdict(float))
-    
+
+    # AI Agent tracking
+    ai_agent_time = defaultdict(float)  # agent_name -> total seconds
+    ai_assisted_switches = []  # switches that occurred during AI agent sessions
+    current_ai_agent = None  # currently active AI agent (if any)
+    terminal_titles_by_switch = {}  # switch_index -> terminal_title (for later analysis)
+
     # Activity details for productivity calculation
     weighted_time = 0.0
     total_active_time = 0.0
-    
+
     prev_app = None
+    prev_title = None
     total_events = 0
     
     cutoff = None
@@ -135,7 +177,14 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None) -> dict:
             # Skip system idle
             if app == 'loginwindow':
                 continue
-            
+
+            # Detect AI agent in Terminal
+            if app == 'Terminal':
+                agent = detect_ai_agent(title)
+                if agent:
+                    current_ai_agent = agent
+                    ai_agent_time[agent] += duration
+
             # Categorize
             category, weight = categorize_activity(app, title)
             
@@ -170,45 +219,92 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None) -> dict:
             
             # Track switches
             if prev_app and prev_app != app:
-                switches.append({
+                switch_idx = len(switches)
+                switch_data = {
                     "from": prev_app,
                     "to": app,
                     "hour": hour,
-                    "day": day
-                })
+                    "day": day,
+                    "ai_agent": None
+                }
+
+                # Check if this switch involves Terminal with AI agent
+                # Only count as AI-assisted if the OTHER app is NOT distracting
+                if prev_app == 'Terminal' or app == 'Terminal':
+                    # Get the terminal title (current or previous)
+                    terminal_title = title if app == 'Terminal' else prev_title
+                    if terminal_title:
+                        agent = detect_ai_agent(terminal_title)
+                        if agent:
+                            switch_data["ai_agent"] = agent
+                            terminal_titles_by_switch[switch_idx] = terminal_title
+                            # Only exclude from focus penalty if other app is NOT distracting
+                            other_app = prev_app if app == 'Terminal' else app
+                            other_cat, _ = categorize_activity(other_app, "")
+                            if other_cat not in ['communication_personal', 'social_media', 'entertainment']:
+                                ai_assisted_switches.append(switch_idx)
+
+                switches.append(switch_data)
                 hourly_switches[hour] += 1
+
             prev_app = app
+            prev_title = title
     
-    # Detect death loops
+    # Detect death loops with AI agent awareness
     pair_counts = defaultdict(int)
-    for s in switches:
+    pair_ai_counts = defaultdict(int)  # Count of AI-assisted switches per pair
+    pair_agents = defaultdict(lambda: defaultdict(int))  # Track which agents per pair
+
+    for i, s in enumerate(switches):
         pair = tuple(sorted([s["from"], s["to"]]))
         pair_counts[pair] += 1
-    
+        if s.get("ai_agent"):
+            pair_ai_counts[pair] += 1
+            pair_agents[pair][s["ai_agent"]] += 1
+
     death_loops = sorted(
-        [{"apps": list(k), "count": v, "description": f"{k[0]} ↔ {k[1]}"} 
+        [{"apps": list(k), "count": v, "description": f"{k[0]} ↔ {k[1]}"}
          for k, v in pair_counts.items() if v >= 20],
         key=lambda x: x["count"],
         reverse=True
     )[:10]
-    
-    # Annotate death loops with category info
+
+    # Annotate death loops with category info AND AI agent detection
+    # PRIORITY: Check distracting apps FIRST, then AI-assisted
+    distracting_categories = ['communication_personal', 'social_media', 'entertainment']
+
     for loop in death_loops:
+        pair = tuple(sorted(loop["apps"]))
         app1_cat, _ = categorize_activity(loop["apps"][0], "")
         app2_cat, _ = categorize_activity(loop["apps"][1], "")
-        
-        if app1_cat in ['deep_work', 'development'] and app2_cat in ['deep_work', 'development']:
-            loop["verdict"] = "productive"
-            loop["suggestion"] = "Normal dev workflow - consider split screen"
-        elif app1_cat in ['communication_personal', 'social_media', 'entertainment']:
+
+        # 1. FIRST check if either app is distracting - always flag these
+        if app1_cat in distracting_categories:
             loop["verdict"] = "distracting"
             loop["suggestion"] = f"Block {loop['apps'][0]} during focus hours"
-        elif app2_cat in ['communication_personal', 'social_media', 'entertainment']:
+        elif app2_cat in distracting_categories:
             loop["verdict"] = "distracting"
             loop["suggestion"] = f"Block {loop['apps'][1]} during focus hours"
         else:
-            loop["verdict"] = "mixed"
-            loop["suggestion"] = "Consider batching these activities"
+            # 2. Only check AI-assisted if neither app is distracting
+            ai_count = pair_ai_counts.get(pair, 0)
+            total_count = loop["count"]
+            ai_ratio = ai_count / total_count if total_count > 0 else 0
+
+            if ai_ratio > 0.3:  # More than 30% of switches had AI agent
+                # Find the most common agent
+                agents = pair_agents.get(pair, {})
+                top_agent = max(agents.items(), key=lambda x: x[1])[0] if agents else "unknown"
+                loop["verdict"] = "ai_assisted"
+                loop["ai_agent"] = top_agent
+                loop["ai_switches"] = ai_count
+                loop["suggestion"] = f"AI-assisted development ({top_agent}) - productive workflow"
+            elif app1_cat in ['deep_work', 'development'] and app2_cat in ['deep_work', 'development']:
+                loop["verdict"] = "productive"
+                loop["suggestion"] = "Normal dev workflow - consider split screen"
+            else:
+                loop["verdict"] = "mixed"
+                loop["suggestion"] = "Consider batching these activities"
     
     # Calculate totals
     total_time = sum(app_time.values())
@@ -224,10 +320,11 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None) -> dict:
     else:
         productivity_score = 0
     
-    # Focus score (based on context switching)
+    # Focus score (based on context switching, excluding AI-assisted switches)
     active_hours = sum(1 for h in hourly_activity.values() if h > 300)
-    switches_per_active_hour = total_switches / max(1, active_hours)
-    
+    human_switches = total_switches - len(ai_assisted_switches)
+    switches_per_active_hour = human_switches / max(1, active_hours)
+
     if switches_per_active_hour < 50:
         focus_score = 85
     elif switches_per_active_hour < 100:
@@ -358,10 +455,22 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None) -> dict:
         
         "context_switching": {
             "total_switches": total_switches,
-            "average_per_day": round(total_switches / max(1, days_tracked), 1),
+            "human_switches": human_switches,
+            "ai_assisted_switches": len(ai_assisted_switches),
+            "average_per_day": round(human_switches / max(1, days_tracked), 1),
             "switches_per_hour": round(switches_per_active_hour, 1)
         },
-        
+
+        "ai_assisted_development": {
+            "total_hours": round(sum(ai_agent_time.values()) / 3600, 2),
+            "agents_detected": {
+                agent: round(secs / 3600, 2)
+                for agent, secs in sorted(ai_agent_time.items(), key=lambda x: x[1], reverse=True)
+            },
+            "switches_during_ai": len(ai_assisted_switches),
+            "interpretation": "Productive human-AI collaboration" if ai_agent_time else "No AI agents detected"
+        },
+
         "death_loops": death_loops,
         
         "insights": generate_insights(
@@ -431,8 +540,16 @@ def generate_insights(categories, death_loops, peak_hours, danger_hours,
     
     # One change recommendation
     if death_loops:
-        worst_loop = death_loops[0]
-        if worst_loop.get("verdict") == "distracting":
+        # Find the first non-AI-assisted problematic loop
+        worst_loop = None
+        for loop in death_loops:
+            if loop.get("verdict") == "distracting":
+                worst_loop = loop
+                break
+            elif loop.get("verdict") == "mixed" and worst_loop is None:
+                worst_loop = loop
+
+        if worst_loop and worst_loop.get("verdict") == "distracting":
             insights["one_change"] = worst_loop.get("suggestion", "Block distracting app during focus hours")
         else:
             # Look for distracting browser content
@@ -443,7 +560,7 @@ def generate_insights(categories, death_loops, peak_hours, danger_hours,
                     break
             else:
                 insights["one_change"] = "Batch check communication apps 3x daily instead of continuously"
-    
+
     if not insights["one_change"]:
         insights["one_change"] = "Protect your peak productive hours by blocking notifications"
     
@@ -494,14 +611,34 @@ def format_report(summary: dict) -> str:
             report.append(f"| {item['title'][:50]} | {item['hours']}h | {item['category']} |")
         report.append("")
     
+    # AI-Assisted Development (if detected)
+    ai_dev = summary.get('ai_assisted_development', {})
+    if ai_dev.get('agents_detected'):
+        report.append("## 🤖 AI-Assisted Development\n")
+        report.append("| Agent | Hours | Switches |")
+        report.append("|-------|-------|----------|")
+        switches_per_agent = ai_dev.get('switches_during_ai', 0) // max(1, len(ai_dev['agents_detected']))
+        for agent, hours in ai_dev['agents_detected'].items():
+            report.append(f"| {agent} | {hours}h | ~{switches_per_agent} |")
+        report.append("")
+        report.append(f"*{ai_dev.get('interpretation', '')}. These switches are excluded from focus score.*\n")
+
     # Death loops
     if summary['death_loops']:
         report.append("## 🔄 Context Switching Patterns\n")
         report.append("| Loop | Count | Verdict | Suggestion |")
         report.append("|------|-------|---------|------------|")
         for loop in summary['death_loops'][:5]:
-            verdict_emoji = "🟢" if loop.get('verdict') == 'productive' else "🔴" if loop.get('verdict') == 'distracting' else "🟡"
-            report.append(f"| {loop['description']} | {loop['count']} | {verdict_emoji} {loop.get('verdict', 'mixed')} | {loop.get('suggestion', '-')} |")
+            verdict = loop.get('verdict', 'mixed')
+            if verdict == 'ai_assisted':
+                verdict_emoji = "🤖"
+            elif verdict == 'productive':
+                verdict_emoji = "🟢"
+            elif verdict == 'distracting':
+                verdict_emoji = "🔴"
+            else:
+                verdict_emoji = "🟡"
+            report.append(f"| {loop['description']} | {loop['count']} | {verdict_emoji} {verdict} | {loop.get('suggestion', '-')} |")
         report.append("")
     
     # Insights

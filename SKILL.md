@@ -10,6 +10,7 @@ Analyze ActivityWatch exports to identify focus problems, track productivity, an
 ## Features
 
 - **Smart Auto-Categorization**: Classifies activities into productive/neutral/distracting
+- **AI Agent Detection**: Recognizes Claude Code, Codex, Aider, and other AI coding agents
 - **Dual Scoring**: Productivity score (what you worked on) + Focus score (attention quality)
 - **Browser Breakdown**: See exactly what you did inside browsers
 - **Death Loop Detection**: Identifies repetitive app switching patterns with fix suggestions
@@ -70,15 +71,49 @@ Death loops are repetitive A↔B app switches that fragment your attention.
 
 | Verdict | Meaning | Action |
 |---------|---------|--------|
+| 🤖 ai_assisted | AI coding agent active (Claude Code, Codex) | Productive workflow |
 | 🟢 productive | Normal workflow (IDE ↔ Terminal) | Consider split screen |
 | 🟡 mixed | Could go either way | Batch these activities |
 | 🔴 distracting | Attention leak | Block during focus hours |
 
 Common patterns:
 - **Slack ↔ IDE**: Waiting for responses → Batch check times
-- **Browser ↔ IDE**: Testing/debugging → Use split screen  
+- **Browser ↔ IDE**: Testing/debugging → Use split screen
 - **Email ↔ Work**: Anxiety/FOMO → Close email, check 2x/day
 - **Social ↔ Anything**: Procrastination → Block during focus hours
+
+## AI Agent Detection
+
+The analyzer recognizes when you're using AI coding agents and adjusts scoring accordingly.
+
+### Supported Agents
+
+| Agent | Detection Pattern |
+|-------|-------------------|
+| Claude Code | Window title with ✳ prefix or `claude` command |
+| OpenAI Codex | `codex` in terminal title |
+| Aider | `aider` in terminal title |
+| GitHub Copilot CLI | `gh copilot` in terminal title |
+
+### How It Works
+
+When you use AI coding agents, frequent Browser ↔ Terminal switching is **expected and productive** (reviewing docs, checking dashboards, supervising AI output). The analyzer:
+
+1. Detects AI agent running in Terminal by window title
+2. Marks Browser ↔ Terminal switches as "ai_assisted" instead of "distracting"
+3. Excludes productive AI switches from Focus Score penalty
+4. Still flags distracting switches (Telegram ↔ Terminal) even during AI sessions
+
+### Report Section
+
+The report includes an "AI-Assisted Development" section showing:
+
+```
+| Agent | Hours | Switches |
+|-------|-------|----------|
+| claude_code | 25.6h | ~6700 |
+| codex | 24.2h | ~6700 |
+```
 
 ## Customizing Categories
 
