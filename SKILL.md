@@ -1,5 +1,5 @@
 ---
-name: activitywatch-analysis
+name: activitywatch-analysis-skill
 description: Weekly Focus Engineering analysis using ActivityWatch data. Use when analyzing app usage patterns, detecting context switching problems, identifying "death loops" (repetitive app switching), calculating focus scores, or creating weekly productivity reviews.
 ---
 
