@@ -24,9 +24,15 @@ jobs:
           pip install git+https://github.com/agentskills/agentskills.git#subdirectory=skills-ref
 
       - name: Validate skill
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
-          skills-ref validate .
+          cd ..
+          skills-ref validate "$REPO_NAME"
 
       - name: Show skill properties
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
-          skills-ref read-properties .
+          cd ..
+          skills-ref read-properties "$REPO_NAME"

@@ -279,6 +279,67 @@ Use insights to configure blocking tools. See `references/blocking_guides.md` fo
 - iOS Screen Time / Android Digital Wellbeing
 - Browser extensions (LeechBlock, StayFocusd)
 
+## Focus Guard - App Blocker
+
+Focus Guard is an open-source app blocker for macOS that prevents distracting apps from running during focus hours.
+
+### Quick Start
+
+```bash
+# Start blocking (runs until you stop it)
+python scripts/focus_guard.py --start
+
+# Quick 2-hour focus session
+python scripts/focus_guard.py --start --duration 2
+
+# Block specific apps
+python scripts/focus_guard.py --start --block Telegram Slack Discord
+
+# Check status
+python scripts/focus_guard.py --status
+
+# Stop blocking
+python scripts/focus_guard.py --stop
+```
+
+### How It Works
+
+1. Monitors running apps every 2 seconds
+2. When a blocked app is detected:
+   - Shows macOS notification with warning
+   - Gives 5-second grace period to save work
+   - Quits the app automatically
+3. Logs all violations for weekly review
+
+### Configuration
+
+Edit `scripts/focus_config.json`:
+
+```json
+{
+  "blocked_apps": ["Telegram", "Slack", "Discord"],
+  "schedule": {
+    "enabled": true,
+    "start_hour": 9,
+    "end_hour": 17,
+    "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+  },
+  "settings": {
+    "grace_period_seconds": 5,
+    "show_notifications": true
+  }
+}
+```
+
+### Integration with Analyzer
+
+After a focus session, run the analyzer to see your productivity:
+
+```bash
+python scripts/focus_guard.py --stop
+python scripts/analyze_aw.py --fetch --from today --report
+```
+
 ## Files
 
 ```
@@ -286,7 +347,9 @@ activitywatch-analysis/
 ├── SKILL.md                      # This file
 ├── scripts/
 │   ├── analyze_aw.py             # Main analyzer
-│   └── category_config.json      # Customizable categories
+│   ├── focus_guard.py            # App blocker for focus sessions
+│   ├── category_config.json      # Customizable categories
+│   └── focus_config.json         # Focus Guard configuration
 └── references/
     ├── analysis_prompts.md       # Prompts for deeper analysis
     └── blocking_guides.md        # How to implement blocking recommendations

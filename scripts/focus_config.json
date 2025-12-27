@@ -1,0 +1,29 @@
+{
+  "_comment": "Focus Guard Configuration - Customize your blocked apps and schedule",
+
+  "blocked_apps": [
+    "Telegram",
+    "Slack",
+    "Discord",
+    "Messages",
+    "WhatsApp"
+  ],
+
+  "schedule": {
+    "enabled": false,
+    "_comment_schedule": "Set enabled to true to only block during scheduled hours",
+    "start_hour": 9,
+    "end_hour": 17,
+    "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+  },
+
+  "settings": {
+    "check_interval_seconds": 2,
+    "show_notifications": true,
+    "notification_sound": true,
+    "warn_only": true,
+    "_comment_warn_only": "If true, only show warnings. If false, close apps after grace_period_seconds",
+    "grace_period_seconds": 5,
+    "log_violations": true
+  }
+}
