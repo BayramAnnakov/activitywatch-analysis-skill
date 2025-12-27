@@ -19,11 +19,38 @@ Analyze ActivityWatch exports to identify focus problems, track productivity, an
 
 ## Quick Start
 
-### 1. Export from ActivityWatch
+### Option 1: Direct API Fetch (Recommended)
 
-Open ActivityWatch (`http://localhost:5600`) → Raw Data → Export → CSV
+If you have `aw-client` installed (`pip install aw-client`), you can fetch data directly:
 
-### 2. Run Analysis
+```bash
+# Analyze today's productivity
+python scripts/analyze_aw.py --fetch --from today --report --timezone America/Los_Angeles
+
+# Analyze yesterday
+python scripts/analyze_aw.py --fetch --from yesterday --report
+
+# Analyze the past week
+python scripts/analyze_aw.py --fetch --from week --report
+
+# Analyze specific date range
+python scripts/analyze_aw.py --fetch --from 2025-12-20 --to 2025-12-26 --report
+
+# Analyze last 7 days
+python scripts/analyze_aw.py --fetch --from 7d --report
+```
+
+**Date formats supported:**
+- `today`, `yesterday`, `week` (last 7 days)
+- Relative: `7d` (7 days ago), `2w` (2 weeks ago)
+- Absolute: `YYYY-MM-DD` (e.g., `2025-12-26`)
+
+### Option 2: CSV Export (Fallback)
+
+If you prefer manual export or don't have `aw-client`:
+
+1. Open ActivityWatch (`http://localhost:5600`) → Raw Data → Export → CSV
+2. Run analysis:
 
 ```bash
 # Basic analysis (uses system timezone)

@@ -5,17 +5,27 @@ ActivityWatch Analyzer
 - Personalized productivity scoring
 - Title-level breakdown for browsers
 - Weekly narrative insights
+- Direct ActivityWatch API integration (optional)
 """
 
 import csv
 import json
+import os
 import re
 import sys
+import tempfile
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from zoneinfo import ZoneInfo
+
+# Optional: ActivityWatch client for direct API access
+try:
+    from aw_client import ActivityWatchClient
+    AW_CLIENT_AVAILABLE = True
+except ImportError:
+    AW_CLIENT_AVAILABLE = False
 
 # ============================================================================
 # CATEGORIZATION CONFIG - Customize these for your workflow
@@ -241,6 +251,122 @@ def detect_ai_agent(title: str) -> Optional[str]:
         return 'copilot'
 
     return None
+
+
+# ============================================================================
+# ACTIVITYWATCH API INTEGRATION
+# ============================================================================
+
+def fetch_from_activitywatch(
+    start_date: datetime,
+    end_date: datetime,
+    tz_name: Optional[str] = None,
+    bucket_id: Optional[str] = None
+) -> Optional[str]:
+    """
+    Fetch events directly from ActivityWatch API and save to temporary CSV.
+
+    Args:
+        start_date: Start datetime (in local timezone)
+        end_date: End datetime (in local timezone)
+        tz_name: Timezone name (e.g., 'America/Los_Angeles')
+        bucket_id: Specific bucket ID (auto-detected if None)
+
+    Returns:
+        Path to temporary CSV file, or None if failed
+    """
+    if not AW_CLIENT_AVAILABLE:
+        print("Error: aw-client not installed. Install with: pip install aw-client", file=sys.stderr)
+        return None
+
+    try:
+        # Set up timezone
+        if tz_name:
+            local_tz = ZoneInfo(tz_name)
+        else:
+            local_tz = datetime.now().astimezone().tzinfo
+
+        # Ensure dates have timezone
+        if start_date.tzinfo is None:
+            start_date = start_date.replace(tzinfo=local_tz)
+        if end_date.tzinfo is None:
+            end_date = end_date.replace(tzinfo=local_tz)
+
+        client = ActivityWatchClient("analyze-productivity")
+
+        # Auto-detect bucket if not specified
+        if not bucket_id:
+            buckets = client.get_buckets()
+            window_buckets = [b for b in buckets.keys() if 'aw-watcher-window' in b]
+            if not window_buckets:
+                print("Error: No window watcher bucket found in ActivityWatch", file=sys.stderr)
+                return None
+            bucket_id = window_buckets[0]
+            print(f"Using bucket: {bucket_id}", file=sys.stderr)
+
+        # Fetch events
+        events = client.get_events(bucket_id, start=start_date, end=end_date, limit=-1)
+        print(f"Fetched {len(events)} events from ActivityWatch", file=sys.stderr)
+
+        if not events:
+            print("Warning: No events found for the specified period", file=sys.stderr)
+            return None
+
+        # Write to temporary CSV
+        fd, temp_path = tempfile.mkstemp(suffix='.csv', prefix='aw_export_')
+        with os.fdopen(fd, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['timestamp', 'duration', 'app', 'title'])
+            for e in events:
+                writer.writerow([
+                    e.timestamp.isoformat(),
+                    e.duration.total_seconds(),
+                    e.data.get('app', 'Unknown'),
+                    e.data.get('title', '')
+                ])
+
+        return temp_path
+
+    except Exception as e:
+        print(f"Error fetching from ActivityWatch: {e}", file=sys.stderr)
+        return None
+
+
+def parse_date_arg(date_str: str, tz_name: Optional[str] = None) -> Optional[datetime]:
+    """
+    Parse a date argument in various formats.
+
+    Supports:
+        - 'today', 'yesterday', 'week'
+        - YYYY-MM-DD
+        - Relative: '7d' (7 days ago), '2w' (2 weeks ago)
+    """
+    if tz_name:
+        local_tz = ZoneInfo(tz_name)
+    else:
+        local_tz = datetime.now().astimezone().tzinfo
+
+    now = datetime.now(local_tz)
+    date_str = date_str.lower().strip()
+
+    if date_str == 'today':
+        return now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif date_str == 'yesterday':
+        return (now - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    elif date_str == 'week':
+        return (now - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
+    elif date_str.endswith('d') and date_str[:-1].isdigit():
+        days = int(date_str[:-1])
+        return (now - timedelta(days=days)).replace(hour=0, minute=0, second=0, microsecond=0)
+    elif date_str.endswith('w') and date_str[:-1].isdigit():
+        weeks = int(date_str[:-1])
+        return (now - timedelta(weeks=weeks)).replace(hour=0, minute=0, second=0, microsecond=0)
+    else:
+        try:
+            parsed = datetime.strptime(date_str, '%Y-%m-%d')
+            return parsed.replace(tzinfo=local_tz)
+        except ValueError:
+            return None
 
 
 def categorize_activity(app: str, title: str) -> Tuple[str, float]:
@@ -893,19 +1019,41 @@ def format_report(summary: dict) -> str:
 
 if __name__ == "__main__":
 
-    if len(sys.argv) < 2:
-        print("Usage: python analyze_aw.py <csv_file> [--report] [--config config.json] [--timezone America/Los_Angeles]")
-        sys.exit(1)
+    # Check for help
+    if len(sys.argv) < 2 or '--help' in sys.argv or '-h' in sys.argv:
+        print("""ActivityWatch Analyzer
 
-    filepath = sys.argv[1]
+Usage:
+    # Analyze from CSV file
+    python analyze_aw.py <csv_file> [--report] [--timezone TZ] [--config FILE]
+
+    # Fetch directly from ActivityWatch API
+    python analyze_aw.py --fetch [--from DATE] [--to DATE] [--report] [--timezone TZ]
+
+Options:
+    --fetch             Fetch data directly from ActivityWatch API (requires aw-client)
+    --from DATE         Start date: 'today', 'yesterday', 'week', '7d', '2w', or YYYY-MM-DD
+    --to DATE           End date (same formats as --from). Default: end of --from day
+    --report            Output human-readable markdown report instead of JSON
+    --timezone TZ       Timezone (e.g., 'America/Los_Angeles'). Default: system local
+    --config FILE       Custom category config JSON file
+
+Examples:
+    # Analyze today's productivity
+    python analyze_aw.py --fetch --from today --report --timezone America/Los_Angeles
+
+    # Analyze the past week
+    python analyze_aw.py --fetch --from week --report
+
+    # Analyze specific date range
+    python analyze_aw.py --fetch --from 2025-12-20 --to 2025-12-26 --report
+
+    # Analyze from exported CSV
+    python analyze_aw.py export.csv --report --timezone America/New_York
+""")
+        sys.exit(0)
+
     output_report = "--report" in sys.argv
-
-    # Load custom config if provided
-    config_path = None
-    if "--config" in sys.argv:
-        config_idx = sys.argv.index("--config")
-        if config_idx + 1 < len(sys.argv):
-            config_path = sys.argv[config_idx + 1]
 
     # Get timezone if provided (default: system local)
     tz_name = None
@@ -914,15 +1062,80 @@ if __name__ == "__main__":
         if tz_idx + 1 < len(sys.argv):
             tz_name = sys.argv[tz_idx + 1]
 
+    # Load custom config if provided
+    config_path = None
+    if "--config" in sys.argv:
+        config_idx = sys.argv.index("--config")
+        if config_idx + 1 < len(sys.argv):
+            config_path = sys.argv[config_idx + 1]
+
     # Update CATEGORY_RULES module-level variable
     if config_path:
         loaded_rules = load_category_rules(config_path)
         CATEGORY_RULES.clear()
         CATEGORY_RULES.update(loaded_rules)
 
-    summary = analyze_csv_enhanced(filepath, tz_name=tz_name)
+    # Determine filepath: either from argument or fetch from ActivityWatch
+    filepath = None
+    temp_file = False
 
-    if output_report:
-        print(format_report(summary))
+    if "--fetch" in sys.argv:
+        # Fetch directly from ActivityWatch API
+        if not AW_CLIENT_AVAILABLE:
+            print("Error: aw-client not installed. Install with: pip install aw-client", file=sys.stderr)
+            print("Alternatively, export CSV from ActivityWatch UI and provide as argument.", file=sys.stderr)
+            sys.exit(1)
+
+        # Parse --from date
+        from_date = None
+        if "--from" in sys.argv:
+            from_idx = sys.argv.index("--from")
+            if from_idx + 1 < len(sys.argv):
+                from_date = parse_date_arg(sys.argv[from_idx + 1], tz_name)
+                if not from_date:
+                    print(f"Error: Could not parse --from date: {sys.argv[from_idx + 1]}", file=sys.stderr)
+                    sys.exit(1)
+        else:
+            # Default to today
+            from_date = parse_date_arg("today", tz_name)
+
+        # Parse --to date
+        to_date = None
+        if "--to" in sys.argv:
+            to_idx = sys.argv.index("--to")
+            if to_idx + 1 < len(sys.argv):
+                to_date = parse_date_arg(sys.argv[to_idx + 1], tz_name)
+                if not to_date:
+                    print(f"Error: Could not parse --to date: {sys.argv[to_idx + 1]}", file=sys.stderr)
+                    sys.exit(1)
+                # Set to end of day
+                to_date = to_date.replace(hour=23, minute=59, second=59)
+        else:
+            # Default to end of from_date day
+            to_date = from_date.replace(hour=23, minute=59, second=59)
+
+        print(f"Fetching ActivityWatch data from {from_date} to {to_date}", file=sys.stderr)
+
+        filepath = fetch_from_activitywatch(from_date, to_date, tz_name)
+        if not filepath:
+            print("Error: Could not fetch data from ActivityWatch", file=sys.stderr)
+            sys.exit(1)
+        temp_file = True
     else:
-        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        # Use provided CSV file
+        filepath = sys.argv[1]
+        if not os.path.exists(filepath):
+            print(f"Error: File not found: {filepath}", file=sys.stderr)
+            sys.exit(1)
+
+    try:
+        summary = analyze_csv_enhanced(filepath, tz_name=tz_name)
+
+        if output_report:
+            print(format_report(summary))
+        else:
+            print(json.dumps(summary, indent=2, ensure_ascii=False))
+    finally:
+        # Clean up temporary file
+        if temp_file and filepath and os.path.exists(filepath):
+            os.unlink(filepath)

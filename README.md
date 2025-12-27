@@ -17,15 +17,42 @@ A Claude Code skill for weekly productivity analysis using [ActivityWatch](https
 
 - Python 3.8+
 - [ActivityWatch](https://activitywatch.net/) installed and running
-- No external dependencies (uses only stdlib)
+- Optional: `aw-client` for direct API access (`pip install aw-client`)
 
 ## Quick Start
 
-### 1. Export from ActivityWatch
+### Option 1: Direct API Fetch (Recommended)
 
-Open ActivityWatch (`http://localhost:5600`) → Raw Data → Export → CSV
+If you have `aw-client` installed (`pip install aw-client`), you can fetch data directly from ActivityWatch:
 
-### 2. Run Analysis
+```bash
+# Analyze today's productivity
+python scripts/analyze_aw.py --fetch --from today --report --timezone America/Los_Angeles
+
+# Analyze yesterday
+python scripts/analyze_aw.py --fetch --from yesterday --report
+
+# Analyze the past week
+python scripts/analyze_aw.py --fetch --from week --report
+
+# Analyze specific date range
+python scripts/analyze_aw.py --fetch --from 2025-12-20 --to 2025-12-26 --report
+
+# Analyze last 7 days
+python scripts/analyze_aw.py --fetch --from 7d --report
+```
+
+**Supported date formats:**
+- Keywords: `today`, `yesterday`, `week`
+- Relative: `7d` (7 days ago), `2w` (2 weeks ago)
+- Absolute: `YYYY-MM-DD` (e.g., `2025-12-26`)
+
+### Option 2: CSV Export (Fallback)
+
+If you don't have `aw-client` or prefer manual export:
+
+1. Open ActivityWatch (`http://localhost:5600`) → Raw Data → Export → CSV
+2. Run analysis:
 
 ```bash
 # Human-readable report (uses system timezone)
