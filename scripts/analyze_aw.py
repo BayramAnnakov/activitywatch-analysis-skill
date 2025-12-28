@@ -332,6 +332,233 @@ def fetch_from_activitywatch(
         return None
 
 
+def fetch_web_watcher_data(
+    start_date: datetime,
+    end_date: datetime,
+    tz_name: Optional[str] = None
+) -> Optional[List[dict]]:
+    """
+    Fetch browser extension data from ActivityWatch (aw-watcher-web-chrome).
+
+    Returns list of events with URL, title, duration, audible status.
+    """
+    if not AW_CLIENT_AVAILABLE:
+        return None
+
+    try:
+        # Set up timezone
+        if tz_name:
+            local_tz = ZoneInfo(tz_name)
+        else:
+            local_tz = datetime.now().astimezone().tzinfo
+
+        # Ensure dates have timezone
+        if start_date.tzinfo is None:
+            start_date = start_date.replace(tzinfo=local_tz)
+        if end_date.tzinfo is None:
+            end_date = end_date.replace(tzinfo=local_tz)
+
+        client = ActivityWatchClient("analyze-productivity")
+
+        # Find web watcher bucket
+        buckets = client.get_buckets()
+        web_buckets = [b for b in buckets.keys() if 'aw-watcher-web' in b]
+        if not web_buckets:
+            return None
+
+        bucket_id = web_buckets[0]
+
+        # Fetch events
+        events = client.get_events(bucket_id, start=start_date, end=end_date, limit=-1)
+
+        if not events:
+            return None
+
+        # Process events
+        result = []
+        for e in events:
+            url = e.data.get('url', '')
+            # Extract domain from URL
+            domain = ''
+            if url:
+                try:
+                    from urllib.parse import urlparse
+                    parsed = urlparse(url)
+                    domain = parsed.netloc.replace('www.', '')
+                except:
+                    domain = url[:50]
+
+            result.append({
+                'timestamp': e.timestamp.isoformat(),
+                'duration': e.duration.total_seconds(),
+                'url': url,
+                'domain': domain,
+                'title': e.data.get('title', ''),
+                'audible': e.data.get('audible', False),
+                'incognito': e.data.get('incognito', False),
+                'tab_count': e.data.get('tabCount', 0)
+            })
+
+        return result
+
+    except Exception as e:
+        print(f"Note: Could not fetch web watcher data: {e}", file=sys.stderr)
+        return None
+
+
+def analyze_web_data(web_events: List[dict]) -> dict:
+    """
+    Analyze browser extension data for domain-level insights.
+
+    Returns:
+        - domain_breakdown: time by domain
+        - audible_time: time with audio/video playing
+        - productive_domains: categorized domains
+        - tab_stats: average tab count
+    """
+    if not web_events:
+        return {}
+
+    domain_time = defaultdict(float)
+    audible_time = 0.0
+    total_time = 0.0
+    tab_counts = []
+
+    # Domain categorization
+    PRODUCTIVE_DOMAINS = {
+        # Development
+        'github.com': ('development', 0.8),
+        'gitlab.com': ('development', 0.8),
+        'stackoverflow.com': ('learning', 0.7),
+        'supabase.com': ('development', 0.8),
+        'vercel.com': ('development', 0.8),
+        'console.cloud.google.com': ('development', 0.7),
+        'aws.amazon.com': ('development', 0.7),
+        'cloud.google.com': ('development', 0.7),
+        'us.cloud.langfuse.com': ('development', 0.7),
+        'langfuse.com': ('development', 0.7),
+        'fly.io': ('development', 0.7),
+        'railway.app': ('development', 0.7),
+        'render.com': ('development', 0.7),
+
+        # AI Tools
+        'anthropic.com': ('ai_tools', 0.8),
+        'openai.com': ('ai_tools', 0.8),
+        'chatgpt.com': ('ai_tools', 0.8),
+        'claude.ai': ('ai_tools', 0.8),
+        'ai.google.dev': ('ai_tools', 0.8),
+        'aistudio.google.com': ('ai_tools', 0.8),
+        'perplexity.ai': ('ai_tools', 0.7),
+        'huggingface.co': ('ai_tools', 0.8),
+
+        # Writing & Docs
+        'docs.google.com': ('writing', 0.7),
+        'notion.so': ('writing', 0.8),
+        'coda.io': ('writing', 0.7),
+        'obsidian.md': ('writing', 0.8),
+
+        # Design
+        'figma.com': ('design', 0.9),
+        'canva.com': ('design', 0.7),
+        'webflow.com': ('design', 0.8),
+
+        # Business/Marketing
+        'ads.google.com': ('marketing', 0.6),
+        'analytics.google.com': ('analytics', 0.6),
+        'search.google.com': ('research', 0.5),
+        'studio.youtube.com': ('content_creation', 0.7),
+        'business.facebook.com': ('marketing', 0.5),
+        'stripe.com': ('business', 0.6),
+
+        # Email
+        'mail.google.com': ('email', 0.4),
+        'outlook.com': ('email', 0.4),
+        'outlook.office.com': ('email', 0.4),
+
+        # Product work
+        'linear.app': ('product_work', 0.8),
+        'jira.atlassian.com': ('product_work', 0.6),
+        'trello.com': ('product_work', 0.6),
+        'asana.com': ('product_work', 0.6),
+
+        # Learning
+        'coursera.org': ('learning', 0.8),
+        'udemy.com': ('learning', 0.7),
+        'edx.org': ('learning', 0.8),
+    }
+
+    DISTRACTING_DOMAINS = {
+        'youtube.com': ('video', -0.2),  # Neutral - could be learning or entertainment
+        'netflix.com': ('entertainment', -0.5),
+        'twitter.com': ('social_media', -0.3),
+        'x.com': ('social_media', -0.3),
+        'reddit.com': ('social_media', -0.3),
+        'facebook.com': ('social_media', -0.4),
+        'instagram.com': ('social_media', -0.4),
+        'tiktok.com': ('social_media', -0.5),
+        'linkedin.com': ('social_media', -0.2),  # Can be work-related
+        'twitch.tv': ('entertainment', -0.4),
+        'primevideo.com': ('entertainment', -0.5),
+        'disneyplus.com': ('entertainment', -0.5),
+        'hulu.com': ('entertainment', -0.5),
+        'hbomax.com': ('entertainment', -0.5),
+        'paramountplus.com': ('entertainment', -0.5),
+    }
+
+    for event in web_events:
+        duration = event['duration']
+        domain = event['domain']
+
+        domain_time[domain] += duration
+        total_time += duration
+
+        if event['audible']:
+            audible_time += duration
+
+        if event['tab_count'] > 0:
+            tab_counts.append(event['tab_count'])
+
+    # Convert to hours and sort by time
+    domain_breakdown = []
+    for domain, seconds in sorted(domain_time.items(), key=lambda x: -x[1])[:20]:
+        hours = seconds / 3600
+        if hours < 0.01:  # Skip domains with less than 30 seconds
+            continue
+
+        # Categorize domain
+        category = 'uncategorized'
+        weight = 0.0
+        productive = 'neutral'
+
+        if domain in PRODUCTIVE_DOMAINS:
+            category, weight = PRODUCTIVE_DOMAINS[domain]
+            productive = 'yes'
+        elif domain in DISTRACTING_DOMAINS:
+            category, weight = DISTRACTING_DOMAINS[domain]
+            productive = 'no'
+
+        domain_breakdown.append({
+            'domain': domain,
+            'hours': round(hours, 2),
+            'category': category,
+            'weight': weight,
+            'productive': productive
+        })
+
+    # Calculate stats
+    avg_tabs = sum(tab_counts) / len(tab_counts) if tab_counts else 0
+    max_tabs = max(tab_counts) if tab_counts else 0
+
+    return {
+        'domain_breakdown': domain_breakdown,
+        'total_browser_hours': round(total_time / 3600, 2),
+        'audible_hours': round(audible_time / 3600, 2),
+        'audible_pct': round((audible_time / total_time * 100) if total_time > 0 else 0, 1),
+        'avg_tabs': round(avg_tabs, 1),
+        'max_tabs': max_tabs
+    }
+
+
 def parse_date_arg(date_str: str, tz_name: Optional[str] = None) -> Optional[datetime]:
     """
     Parse a date argument in various formats.
@@ -1121,15 +1348,25 @@ Examples:
             print("Error: Could not fetch data from ActivityWatch", file=sys.stderr)
             sys.exit(1)
         temp_file = True
+
+        # Also fetch web watcher data (Chrome extension)
+        web_events = fetch_web_watcher_data(from_date, to_date, tz_name)
     else:
         # Use provided CSV file
         filepath = sys.argv[1]
         if not os.path.exists(filepath):
             print(f"Error: File not found: {filepath}", file=sys.stderr)
             sys.exit(1)
+        web_events = None  # No web data when using CSV
 
     try:
         summary = analyze_csv_enhanced(filepath, tz_name=tz_name)
+
+        # Add web watcher analysis if available
+        if web_events:
+            web_analysis = analyze_web_data(web_events)
+            if web_analysis:
+                summary['chrome_extension'] = web_analysis
 
         if output_report:
             print(format_report(summary))
