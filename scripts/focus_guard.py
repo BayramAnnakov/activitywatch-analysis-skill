@@ -503,26 +503,22 @@ def run_auto_guard(config: dict):
                         if log_enabled:
                             log_violation("FOCUS_MODE", "DEACTIVATED")
 
-            # If focus mode is active, check for blocked apps
-            if focus_active:
-                running_apps = get_running_apps()
+            # If focus mode is active, warn only when SWITCHING TO a blocked app
+            if focus_active and frontmost in blocked_apps:
+                last_warned = recently_warned.get(frontmost, 0)
 
-                for app in blocked_apps:
-                    if app in running_apps:
-                        last_warned = recently_warned.get(app, 0)
-
-                        # Only warn if we haven't warned in the last 30 seconds
-                        if now - last_warned > 30:
-                            print(f"[{now_dt.strftime('%H:%M:%S')}] ⚠️  Warning: {app} is open during focus time!")
-                            if show_notifs:
-                                show_notification(
-                                    "Focus Guard",
-                                    f"Hey! '{app}' is open during focus time. Stay focused!",
-                                    notif_sound
-                                )
-                            if log_enabled:
-                                log_violation(app, "WARNING")
-                            recently_warned[app] = now
+                # Only warn if we haven't warned about this app in the last 60 seconds
+                if now - last_warned > 60:
+                    print(f"[{now_dt.strftime('%H:%M:%S')}] ⚠️  Warning: You switched to {frontmost}!")
+                    if show_notifs:
+                        show_notification(
+                            "Focus Guard",
+                            f"Hey! You're using '{frontmost}' during focus time. Stay focused!",
+                            notif_sound
+                        )
+                    if log_enabled:
+                        log_violation(frontmost, "WARNING")
+                    recently_warned[frontmost] = now
 
             time.sleep(check_interval)
 
