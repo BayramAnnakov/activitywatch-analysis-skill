@@ -9,6 +9,23 @@
     "WhatsApp"
   ],
 
+  "deep_work_apps": [
+    "Terminal",
+    "Cursor",
+    "Code",
+    "Xcode",
+    "PyCharm",
+    "IntelliJ IDEA",
+    "WebStorm"
+  ],
+  "_comment_deep_work": "Apps that trigger auto-detect mode when focused",
+
+  "auto_detect": {
+    "trigger_minutes": 5,
+    "cooldown_minutes": 3,
+    "_comment_auto": "trigger_minutes: how long in deep work before enabling focus. cooldown_minutes: how long without deep work before disabling"
+  },
+
   "schedule": {
     "enabled": false,
     "_comment_schedule": "Set enabled to true to only block during scheduled hours",

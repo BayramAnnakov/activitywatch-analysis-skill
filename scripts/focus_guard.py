@@ -9,6 +9,9 @@ Usage:
     # Start focus guard (runs until stopped)
     python focus_guard.py --start
 
+    # AUTO-DETECT MODE: Automatically enables when you're in deep work
+    python focus_guard.py --auto
+
     # Start with custom config
     python focus_guard.py --start --config focus_config.json
 
@@ -49,11 +52,28 @@ DEFAULT_CONFIG = {
         "Twitter",
         "Facebook"
     ],
+    "deep_work_apps": [
+        "Terminal",
+        "Cursor",
+        "Code",
+        "Xcode",
+        "PyCharm",
+        "IntelliJ IDEA",
+        "WebStorm",
+        "Sublime Text",
+        "Neovim",
+        "Vim"
+    ],
     "schedule": {
         "enabled": False,
         "start_hour": 9,
         "end_hour": 17,
         "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    },
+    "auto_detect": {
+        "trigger_minutes": 5,      # Minutes of deep work before auto-enabling focus mode
+        "cooldown_minutes": 3,     # Minutes without deep work before auto-disabling
+        "session_duration_hours": 2  # Default duration when auto-triggered
     },
     "settings": {
         "check_interval_seconds": 2,
@@ -119,6 +139,21 @@ def get_running_apps() -> Set[str]:
     except Exception as e:
         print(f"Error getting running apps: {e}", file=sys.stderr)
     return set()
+
+
+def get_frontmost_app() -> Optional[str]:
+    """Get the currently focused/frontmost application."""
+    try:
+        result = subprocess.run(
+            ["osascript", "-e", 'tell application "System Events" to get name of first process whose frontmost is true'],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception as e:
+        print(f"Error getting frontmost app: {e}", file=sys.stderr)
+    return None
 
 
 def quit_app(app_name: str, force: bool = False) -> bool:
@@ -375,6 +410,126 @@ def run_guard(config: dict, duration_hours: Optional[float] = None, warn_only: O
         PID_FILE.unlink(missing_ok=True)
 
 
+def run_auto_guard(config: dict):
+    """Auto-detect deep work and enable focus mode automatically."""
+
+    if is_running():
+        print("Focus Guard is already running!")
+        print("Use --stop to stop it first, or --status to check status.")
+        return
+
+    deep_work_apps = set(config.get("deep_work_apps", DEFAULT_CONFIG["deep_work_apps"]))
+    blocked_apps = set(config["blocked_apps"])
+    settings = config.get("settings", {})
+    auto_config = config.get("auto_detect", {})
+
+    trigger_minutes = auto_config.get("trigger_minutes", 5)
+    cooldown_minutes = auto_config.get("cooldown_minutes", 3)
+    check_interval = settings.get("check_interval_seconds", 2)
+    show_notifs = settings.get("show_notifications", True)
+    notif_sound = settings.get("notification_sound", True)
+    log_enabled = settings.get("log_violations", True)
+
+    # Write PID file
+    write_pid()
+
+    # Set up signal handler for clean shutdown
+    def cleanup(signum, frame):
+        print("\nFocus Guard (auto-detect) stopped.")
+        PID_FILE.unlink(missing_ok=True)
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, cleanup)
+    signal.signal(signal.SIGINT, cleanup)
+
+    print(f"Focus Guard AUTO-DETECT mode started!")
+    print(f"Deep work apps: {', '.join(deep_work_apps)}")
+    print(f"Blocked apps: {', '.join(blocked_apps)}")
+    print(f"Will activate after {trigger_minutes} min of deep work")
+    print(f"Will deactivate after {cooldown_minutes} min of no deep work")
+    print("Press Ctrl+C to stop.\n")
+
+    # State tracking
+    deep_work_start = None  # When deep work session started
+    last_deep_work = None   # Last time a deep work app was focused
+    focus_active = False    # Is focus mode currently active
+    recently_warned = {}    # app -> last_warned_time
+
+    try:
+        while True:
+            frontmost = get_frontmost_app()
+            now = time.time()
+            now_dt = datetime.now()
+
+            # Check if frontmost app is a deep work app
+            is_deep_work = frontmost in deep_work_apps if frontmost else False
+
+            if is_deep_work:
+                last_deep_work = now
+                if deep_work_start is None:
+                    deep_work_start = now
+                    print(f"[{now_dt.strftime('%H:%M:%S')}] Deep work detected: {frontmost}")
+
+                # Check if we should activate focus mode
+                if not focus_active:
+                    minutes_in_deep_work = (now - deep_work_start) / 60
+                    if minutes_in_deep_work >= trigger_minutes:
+                        focus_active = True
+                        print(f"\n[{now_dt.strftime('%H:%M:%S')}] ⚡ FOCUS MODE ACTIVATED (after {trigger_minutes} min of deep work)")
+                        if show_notifs:
+                            show_notification(
+                                "Focus Guard",
+                                f"Focus mode activated! Blocking {', '.join(blocked_apps)}",
+                                notif_sound
+                            )
+                        if log_enabled:
+                            log_violation("FOCUS_MODE", "ACTIVATED")
+            else:
+                # Not in deep work app
+                if last_deep_work is not None:
+                    minutes_since_deep_work = (now - last_deep_work) / 60
+
+                    # Check if we should deactivate focus mode
+                    if focus_active and minutes_since_deep_work >= cooldown_minutes:
+                        focus_active = False
+                        deep_work_start = None
+                        print(f"\n[{now_dt.strftime('%H:%M:%S')}] 💤 Focus mode deactivated (no deep work for {cooldown_minutes} min)")
+                        if show_notifs:
+                            show_notification(
+                                "Focus Guard",
+                                "Focus mode ended. Take a break!",
+                                notif_sound
+                            )
+                        if log_enabled:
+                            log_violation("FOCUS_MODE", "DEACTIVATED")
+
+            # If focus mode is active, check for blocked apps
+            if focus_active:
+                running_apps = get_running_apps()
+
+                for app in blocked_apps:
+                    if app in running_apps:
+                        last_warned = recently_warned.get(app, 0)
+
+                        # Only warn if we haven't warned in the last 30 seconds
+                        if now - last_warned > 30:
+                            print(f"[{now_dt.strftime('%H:%M:%S')}] ⚠️  Warning: {app} is open during focus time!")
+                            if show_notifs:
+                                show_notification(
+                                    "Focus Guard",
+                                    f"Hey! '{app}' is open during focus time. Stay focused!",
+                                    notif_sound
+                                )
+                            if log_enabled:
+                                log_violation(app, "WARNING")
+                            recently_warned[app] = now
+
+            time.sleep(check_interval)
+
+    finally:
+        PID_FILE.unlink(missing_ok=True)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Focus Guard - Open Source App Blocker for macOS",
@@ -383,6 +538,11 @@ def main():
 Examples:
   Start focus guard:
     python focus_guard.py --start
+
+  AUTO-DETECT mode (recommended for flexible schedules):
+    python focus_guard.py --auto
+    # Automatically enables focus mode after 5 min of Terminal/Cursor use
+    # Automatically disables after 3 min of no deep work
 
   Quick 2-hour session blocking specific apps:
     python focus_guard.py --start --duration 2 --block Telegram Slack
@@ -398,13 +558,15 @@ Examples:
 """
     )
 
-    parser.add_argument("--start", action="store_true", help="Start Focus Guard")
+    parser.add_argument("--start", action="store_true", help="Start Focus Guard (manual mode)")
+    parser.add_argument("--auto", action="store_true", help="Start in auto-detect mode (enables when deep work detected)")
     parser.add_argument("--stop", action="store_true", help="Stop Focus Guard")
     parser.add_argument("--status", action="store_true", help="Show status")
     parser.add_argument("--init-config", action="store_true", help="Create default config file")
     parser.add_argument("--config", type=str, help="Path to config file")
     parser.add_argument("--duration", type=float, help="Focus session duration in hours")
     parser.add_argument("--block", nargs="+", help="Apps to block (overrides config)")
+    parser.add_argument("--trigger-minutes", type=int, help="Minutes of deep work before auto-enabling (default: 5)")
     parser.add_argument("--warn-only", action="store_true", help="Only show warnings, don't close apps (default)")
     parser.add_argument("--hard-block", action="store_true", help="Close apps after grace period")
 
@@ -427,10 +589,18 @@ Examples:
     elif args.hard_block:
         warn_only = False
 
+    # Handle trigger-minutes override for auto mode
+    if args.trigger_minutes:
+        if "auto_detect" not in config:
+            config["auto_detect"] = {}
+        config["auto_detect"]["trigger_minutes"] = args.trigger_minutes
+
     if args.stop:
         stop_guard()
     elif args.status:
         show_status(config)
+    elif args.auto:
+        run_auto_guard(config)
     elif args.start:
         run_guard(config, args.duration, warn_only)
     else:
