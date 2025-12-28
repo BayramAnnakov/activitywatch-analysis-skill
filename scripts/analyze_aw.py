@@ -406,9 +406,13 @@ def fetch_web_watcher_data(
         return None
 
 
-def analyze_web_data(web_events: List[dict]) -> dict:
+def analyze_web_data(web_events: List[dict], window_events: Optional[List[dict]] = None) -> dict:
     """
     Analyze browser extension data for domain-level insights.
+
+    Args:
+        web_events: Events from aw-watcher-web-chrome
+        window_events: Events from aw-watcher-window (to filter for when Chrome was foreground)
 
     Returns:
         - domain_breakdown: time by domain
@@ -418,6 +422,43 @@ def analyze_web_data(web_events: List[dict]) -> dict:
     """
     if not web_events:
         return {}
+
+    # Build a set of time ranges when Chrome was in the foreground
+    chrome_active_ranges = []
+    if window_events:
+        for event in window_events:
+            app = event.get('app', '')
+            if app in ['Google Chrome', 'Chrome', 'Chromium', 'Arc', 'Brave Browser', 'Safari', 'Firefox',
+                       'ChatGPT Atlas', 'Microsoft Edge', 'Opera', 'Vivaldi', 'Orion', 'SigmaOS']:
+                try:
+                    start = datetime.fromisoformat(event['timestamp'].replace('Z', '+00:00'))
+                    duration = event.get('duration', 0)
+                    end = start + timedelta(seconds=duration)
+                    chrome_active_ranges.append((start, end))
+                except:
+                    pass
+
+    def is_chrome_active(timestamp_str: str, duration: float) -> float:
+        """Return how much of this event overlaps with Chrome being active."""
+        if not chrome_active_ranges:
+            return duration  # No window data, assume all time counts
+
+        try:
+            event_start = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+            event_end = event_start + timedelta(seconds=duration)
+        except:
+            return 0
+
+        # Find overlap with Chrome active ranges
+        total_overlap = 0
+        for chrome_start, chrome_end in chrome_active_ranges:
+            # Calculate overlap
+            overlap_start = max(event_start, chrome_start)
+            overlap_end = min(event_end, chrome_end)
+            if overlap_start < overlap_end:
+                total_overlap += (overlap_end - overlap_start).total_seconds()
+
+        return total_overlap
 
     domain_time = defaultdict(float)
     audible_time = 0.0
@@ -506,8 +547,13 @@ def analyze_web_data(web_events: List[dict]) -> dict:
     }
 
     for event in web_events:
-        duration = event['duration']
+        raw_duration = event['duration']
         domain = event['domain']
+
+        # Only count time when Chrome was actually in foreground
+        duration = is_chrome_active(event['timestamp'], raw_duration)
+        if duration <= 0:
+            continue
 
         domain_time[domain] += duration
         total_time += duration
@@ -1351,6 +1397,22 @@ Examples:
 
         # Also fetch web watcher data (Chrome extension)
         web_events = fetch_web_watcher_data(from_date, to_date, tz_name)
+
+        # Fetch window events for cross-referencing (to filter browser time)
+        window_events_for_web = None
+        if web_events:
+            try:
+                client = ActivityWatchClient("analyze-productivity")
+                buckets = client.get_buckets()
+                window_buckets = [b for b in buckets.keys() if 'aw-watcher-window' in b]
+                if window_buckets:
+                    events = client.get_events(window_buckets[0], start=from_date, end=to_date, limit=-1)
+                    window_events_for_web = [
+                        {'timestamp': e.timestamp.isoformat(), 'duration': e.duration.total_seconds(), 'app': e.data.get('app', '')}
+                        for e in events
+                    ]
+            except Exception as e:
+                print(f"Note: Could not fetch window events for cross-reference: {e}", file=sys.stderr)
     else:
         # Use provided CSV file
         filepath = sys.argv[1]
@@ -1358,13 +1420,14 @@ Examples:
             print(f"Error: File not found: {filepath}", file=sys.stderr)
             sys.exit(1)
         web_events = None  # No web data when using CSV
+        window_events_for_web = None
 
     try:
         summary = analyze_csv_enhanced(filepath, tz_name=tz_name)
 
         # Add web watcher analysis if available
         if web_events:
-            web_analysis = analyze_web_data(web_events)
+            web_analysis = analyze_web_data(web_events, window_events_for_web)
             if web_analysis:
                 summary['chrome_extension'] = web_analysis
 
