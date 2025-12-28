@@ -175,7 +175,19 @@ def quit_app(app_name: str, force: bool = False) -> bool:
 
 
 def show_notification(title: str, message: str, sound: bool = True):
-    """Show a macOS notification."""
+    """Show a macOS notification using terminal-notifier (preferred) or osascript fallback."""
+    # Try terminal-notifier first (more reliable)
+    try:
+        cmd = ["terminal-notifier", "-title", title, "-message", message]
+        if sound:
+            cmd.extend(["-sound", "Basso"])
+        result = subprocess.run(cmd, capture_output=True)
+        if result.returncode == 0:
+            return
+    except FileNotFoundError:
+        pass  # terminal-notifier not installed, fall back to osascript
+
+    # Fallback to osascript
     sound_param = 'with sound "Basso"' if sound else ''
     script = f'display notification "{message}" with title "{title}" {sound_param}'
     try:
