@@ -21,7 +21,7 @@
   "_comment_deep_work": "Apps that trigger auto-detect mode when focused",
 
   "auto_detect": {
-    "trigger_minutes": 5,
+    "trigger_minutes": 2,
     "cooldown_minutes": 3,
     "_comment_auto": "trigger_minutes: how long in deep work before enabling focus. cooldown_minutes: how long without deep work before disabling"
   },
