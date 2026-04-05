@@ -1,11 +1,121 @@
 ---
-name: activitywatch-analysis-skill
-description: Weekly Focus Engineering analysis using ActivityWatch data. Use when analyzing app usage patterns, detecting context switching problems, identifying "death loops" (repetitive app switching), calculating focus scores, or creating weekly productivity reviews.
+description: "Focus Engineering with ActivityWatch — analyze app usage, detect death loops, calculate focus scores, generate weekly insights. Three modes: calibrate (first run), analyze (daily/weekly), review (coaching)."
+allowed-tools:
+  - Read
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - AskUserQuestion
 ---
 
 # ActivityWatch Analysis Skill
 
-Analyze ActivityWatch exports to identify focus problems, track productivity, and generate actionable weekly insights.
+Analyze ActivityWatch data to identify focus problems, track productivity, and generate actionable insights.
+
+## Detect Mode
+
+Check what the user typed:
+- `/activitywatch calibrate` or first run → **Calibrate Mode**
+- `/activitywatch` or `/activitywatch today` or `/activitywatch week` → **Analyze Mode**
+- `/activitywatch review` → **Review Mode** (coaching perspective)
+
+## MODE 1: Calibrate (first run)
+
+Run this once to personalize the analyzer for the user's workflow.
+
+### Step 1: Check ActivityWatch is running + watchers
+
+```bash
+curl -s http://localhost:5600/api/0/info 2>/dev/null
+```
+
+If not running, tell user: "Start ActivityWatch first — it needs to be collecting data."
+
+Then check which watchers are active:
+```bash
+curl -s http://localhost:5600/api/0/buckets 2>/dev/null | python3 -c "import json,sys; buckets=json.load(sys.stdin); [print(k) for k in sorted(buckets.keys())]"
+```
+
+You should see at minimum:
+- `aw-watcher-window_*` — tracks active app + window title (essential)
+- `aw-watcher-afk_*` — tracks idle/active state (essential)
+
+Recommend if missing:
+- `aw-watcher-web-*` — **browser tab tracking** (critical for site-level analysis). Install: Chrome extension from Chrome Web Store "ActivityWatch Web Watcher", or for Safari build from https://github.com/ActivityWatch/aw-watcher-web
+- `aw-watcher-vscode` — VS Code extension for code-level tracking
+- `aw-watcher-input` — keyboard/mouse activity (optional, privacy-sensitive)
+
+Tell user: "Without aw-watcher-web, all browser time shows as one block under 'Chrome' or 'Safari' — no site-level breakdown. Install the Chrome extension for much better analysis."
+
+### Step 2: Run calibration on last 7 days
+
+```bash
+python scripts/analyze_aw.py --fetch --from week --calibrate --config scripts/category_config.json
+```
+
+This shows:
+- Uncategorized apps with >5 min usage
+- Default-categorized items that may need reclassification
+- Telegram usage breakdown (if significant)
+
+### Step 3: Interview the user about uncategorized items
+
+For each uncategorized app/site shown:
+1. Ask: "What is [AppName]? Is it productive work, neutral, or distracting?"
+2. Based on answer, assign to the right category and weight
+3. Update `scripts/category_config.json` with the new entries
+
+### Step 4: Personalize product_work and telegram_chats
+
+Ask:
+- "What are your main product/business apps or sites? (e.g., your SaaS dashboard, CRM)"
+- "Do you have work-related Telegram chats? List the ones that count as productive."
+
+Add answers to `product_work.titles` and `telegram_chats.product_work.patterns` in the config.
+
+### Step 5: Verify
+
+```bash
+python scripts/analyze_aw.py --fetch --from today --report --config scripts/category_config.json
+```
+
+Ask user to spot-check: "Does this report match your experience of today? Any app miscategorized?"
+
+## MODE 2: Analyze (daily/weekly)
+
+### Parse the request
+
+- "today" / "yesterday" / no argument → `--from today` or `--from yesterday`
+- "this week" / "week" → `--from week`
+- Specific dates → `--from YYYY-MM-DD --to YYYY-MM-DD`
+
+### Run analysis
+
+```bash
+python scripts/analyze_aw.py --fetch --from [date] --report --config scripts/category_config.json --timezone [user's timezone]
+```
+
+Present the report. Highlight:
+- Productivity score and focus score
+- Death loops (repetitive app switching)
+- Top distraction
+- AI-assisted development time
+- The "One Change" recommendation
+
+### If user asks for deeper analysis
+
+Read `references/analysis_prompts.md` for coaching-style follow-up questions.
+
+## MODE 3: Review (coaching perspective)
+
+Compare this week to previous weeks. Look for:
+- Score trends (improving, declining, flat)
+- Recurring death loops that haven't been addressed
+- Deep work hour trends
+- Whether the "One Change" from last week was implemented
+
+If the user has a coaching system (e.g., `~/GH/bayram-os/coaching/`), cross-reference with process goals.
 
 ## Features
 
@@ -249,6 +359,45 @@ Edit `scripts/category_config.json` to match your workflow:
 - `apps`: Match by application name (exact)
 - `titles`: Match by window title (case-insensitive, partial match)
 - `description`: Human-readable explanation
+
+### Telegram Chat Categorization
+
+Telegram chats can be categorized by chat name (extracted from window title). Add to `category_config.json`:
+
+```json
+{
+  "telegram_chats": {
+    "content_creation": {
+      "weight": 0.7,
+      "patterns": ["My Channel Name", "Zettelkasten"]
+    },
+    "product_work": {
+      "weight": 0.8,
+      "patterns": ["Course Chat", "EDU", "admin-monitoring", "bot-alerts"]
+    },
+    "communication_work": {
+      "weight": 0.3,
+      "patterns": ["Team Chat", "Project Group", "work"]
+    }
+  }
+}
+```
+
+- Matches are case-insensitive and partial (pattern "EDU" matches "EDU Chat")
+- Unmatched Telegram chats fall back to `communication_personal` (weight 0.1)
+- This allows tracking productive Telegram use (content creation, course chats) vs personal messaging
+
+### Browser Title Categorization
+
+Browser apps (Chrome, Safari, Firefox, ChatGPT Atlas, etc.) are automatically categorized by window title using the `KNOWN_SITES` dictionary. You can override the list of browser apps in config:
+
+```json
+{
+  "browser_apps": ["Google Chrome", "Safari", "Firefox", "Arc", "ChatGPT Atlas", "Edge"]
+}
+```
+
+This is useful when using alternative browsers like ChatGPT Atlas that should get title-based categorization instead of being treated as a single "ai_tools" category
 
 ## Weekly Review Ritual
 

@@ -33,26 +33,47 @@ except ImportError:
 
 # Default categories - can be overridden by config file
 DEFAULT_CATEGORY_RULES = {
-    "deep_work": {"weight": 1.0, "apps": ["Terminal", "Cursor", "Code", "VSCode", "PyCharm"], "titles": ["claude code", "git "]},
-    "ai_tools": {"weight": 0.8, "apps": ["Claude"], "titles": ["ChatGPT", "Claude", "OpenAI Platform", "Google AI Studio"]},
-    "development": {"weight": 0.8, "apps": ["DBeaver", "Postman"], "titles": ["Supabase", "localhost", "GitHub"]},
-    "writing": {"weight": 0.9, "apps": ["Notion", "Obsidian", "Notes"], "titles": ["Google Docs"]},
-    "design": {"weight": 0.9, "apps": ["Figma", "Sketch"], "titles": ["Figma", "Canva", "Webflow"]},
-    "presentations": {"weight": 0.7, "apps": ["Keynote", "Microsoft PowerPoint"], "titles": ["Google Slides"]},
-    "spreadsheets": {"weight": 0.6, "apps": ["Numbers", "Microsoft Excel"], "titles": ["Google Sheets"]},
-    "meetings": {"weight": 0.5, "apps": ["zoom.us", "Zoom", "Google Meet"], "titles": ["Zoom Meeting"]},
-    "communication_work": {"weight": 0.3, "apps": ["Slack"], "titles": ["Slack |"]},
-    "communication_personal": {"weight": 0.1, "apps": ["Telegram", "Messages", "WhatsApp"], "titles": []},
-    "email": {"weight": 0.3, "apps": ["Mail", "Outlook"], "titles": ["Gmail", "Inbox"]},
-    "learning": {"weight": 0.7, "apps": [], "titles": ["Coursera", "tutorial", "documentation", "Stack Overflow"]},
-    "business_tools": {"weight": 0.5, "apps": ["Stripe"], "titles": ["Stripe", "Google Calendar", "Analytics"]},
-    "content_creation": {"weight": 0.7, "apps": [], "titles": ["YouTube Studio", "Creator Studio"]},
-    "product_work": {"weight": 0.8, "apps": [], "titles": ["Darwin", "Onsa", "Empatika"]},
-    "social_media": {"weight": -0.3, "apps": [], "titles": ["Twitter", "Home / X", "LinkedIn", "Reddit"]},
-    "entertainment": {"weight": -0.5, "apps": ["Netflix", "Spotify"], "titles": ["Netflix", "Prime Video", "Paramount+", "Watch ", "Landman"]},
-    "news": {"weight": -0.2, "apps": [], "titles": ["News", "Редакция", "Hacker News"]},
-    "system": {"weight": 0.0, "apps": ["loginwindow", "Finder", "SystemUIServer", "UserNotificationCenter"], "titles": ["Finder"]},
-    "browser_idle": {"weight": 0.0, "apps": [], "titles": ["New Tab", "Untitled"]}
+    "deep_work": {"weight": 1.0, "apps": [
+        "Terminal", "iTerm2", "Warp", "Alacritty", "kitty", "Hyper", "Tabby", "Konsole", "gnome-terminal",
+        "Cursor", "Code", "VSCode", "Visual Studio Code", "PyCharm", "IntelliJ IDEA", "IntelliJ",
+        "WebStorm", "GoLand", "CLion", "Rider", "RubyMine", "DataGrip", "PhpStorm", "Android Studio",
+        "Xcode", "nvim", "vim", "emacs", "Sublime Text", "Nova", "Zed"
+    ], "titles": ["claude code", "git ", "python", "node ", "npm ", "cargo ", "make ", "docker", "✳ "]},
+    "ai_tools": {"weight": 0.8, "apps": ["Claude", "ChatGPT", "ChatGPT Atlas"], "titles": [
+        "ChatGPT", "Claude", "OpenAI Platform", "Google AI Studio", "LangSmith", "Anthropic",
+        "Perplexity", "Gemini", "Copilot", "Cursor Settings"
+    ]},
+    "development": {"weight": 0.8, "apps": [
+        "DBeaver", "Postman", "Insomnia", "TablePlus", "Sequel Pro", "pgAdmin", "DataGrip",
+        "Docker Desktop", "Lens", "Transmit", "Cyberduck", "SourceTree", "GitKraken", "Fork"
+    ], "titles": [
+        "Supabase", "Firebase", "Vercel", "Netlify", "localhost", "127.0.0.1", "GitHub", "GitLab",
+        "Bitbucket", "PageSpeed", "DevTools", "Fly.io", "Railway", "Render", "AWS", "Azure",
+        "DigitalOcean", "Heroku", "n8n", "Jenkins", "CircleCI", "npm", "pip", "docker"
+    ]},
+    "writing": {"weight": 0.9, "apps": ["Notion", "Obsidian", "Bear", "Ulysses", "iA Writer", "Notes", "TextEdit", "Craft", "Typora"], "titles": ["Google Docs", "Notion –", "Obsidian"]},
+    "design": {"weight": 0.9, "apps": ["Figma", "Sketch", "Adobe XD", "Photoshop", "Illustrator", "Canva", "Framer"], "titles": ["Figma", "Canva", "Webflow", "Framer"]},
+    "presentations": {"weight": 0.7, "apps": ["Keynote", "Microsoft PowerPoint"], "titles": ["Google Slides", "Pitch", "Gamma"]},
+    "spreadsheets": {"weight": 0.6, "apps": ["Numbers", "Microsoft Excel"], "titles": ["Google Sheets", "Airtable"]},
+    "meetings": {"weight": 0.5, "apps": ["zoom.us", "Zoom", "Google Meet", "Microsoft Teams", "Around", "Loom", "Whereby"], "titles": ["Zoom Meeting", "Google Meet", "Teams Meeting"]},
+    "communication_work": {"weight": 0.3, "apps": ["Slack", "Discord", "Mattermost"], "titles": ["Slack |", "Discord |"]},
+    "communication_personal": {"weight": 0.1, "apps": ["Telegram", "Messages", "WhatsApp", "Signal", "Viber", "Line"], "titles": []},
+    "email": {"weight": 0.3, "apps": ["Mail", "Outlook", "Spark", "Superhuman", "Mailspring"], "titles": ["Gmail", "Inbox", "Outlook", "ProtonMail"]},
+    "learning": {"weight": 0.7, "apps": [], "titles": ["Coursera", "Udemy", "LinkedIn Learning", "tutorial", "course", "documentation", "docs.", "MDN", "Stack Overflow", "Medium –"]},
+    "business_tools": {"weight": 0.5, "apps": ["Stripe"], "titles": ["Stripe", "PayPal", "Google Calendar", "Calendly", "Analytics", "Mixpanel", "Amplitude", "Linear", "Jira", "Asana", "Trello", "Monday"]},
+    "sales_tools": {"weight": 0.9, "apps": [], "titles": ["HubSpot", "Pipedrive", "Apollo", "Salesforce", "Close", "Outreach"]},
+    "content_creation": {"weight": 0.7, "apps": [], "titles": ["YouTube Studio", "Creator Studio", "Descript"]},
+    "product_work": {"weight": 0.8, "apps": [], "titles": []},
+    "social_media": {"weight": -0.3, "apps": [], "titles": ["Twitter", "Home / X", "LinkedIn Feed", "Facebook", "Instagram", "TikTok", "Reddit"]},
+    "entertainment": {"weight": -0.5, "apps": ["Netflix", "Spotify", "Apple Music", "VLC", "IINA", "Apple TV"], "titles": ["Netflix", "Prime Video", "Hulu", "Disney+", "Paramount+", "Twitch", "Watch ", "Playing"]},
+    "news": {"weight": -0.2, "apps": [], "titles": ["News", "CNN", "BBC", "Hacker News", "TechCrunch"]},
+    "system": {"weight": 0.0, "apps": [
+        "loginwindow", "Finder", "System Preferences", "System Settings", "Activity Monitor",
+        "SystemUIServer", "UserNotificationCenter", "Spotlight", "Alfred", "Raycast",
+        "Nimble Commander", "Preview", "1Password", "Bitwarden", "Keychain Access",
+        "Font Book", "Disk Utility", "Migration Assistant", "BetterTouchTool"
+    ], "titles": ["Finder", "Desktop", "ActivityWatch"]},
+    "browser_idle": {"weight": 0.0, "apps": [], "titles": ["New Tab", "Untitled", "about:blank", "Start Page"]}
 }
 
 def load_category_rules(config_path: Optional[str] = None) -> dict:
@@ -69,9 +90,16 @@ def load_category_rules(config_path: Optional[str] = None) -> dict:
 
 CATEGORY_RULES = dict(DEFAULT_CATEGORY_RULES)  # Mutable copy, will be updated when analyze is called
 
-# Apps that should have title-level breakdown
+# Apps that should have title-level breakdown (can be overridden by config)
 BROWSER_APPS = ["Google Chrome", "Safari", "Firefox", "Arc", "Brave", "Edge",
                 "ChatGPT Atlas", "Opera", "Vivaldi", "Chromium"]
+
+# Telegram chat categorization rules (can be overridden by config)
+TELEGRAM_CHAT_RULES = {}
+
+def load_telegram_chat_rules(config: dict) -> dict:
+    """Extract Telegram chat rules from config."""
+    return config.get("telegram_chats", {})
 
 # ============================================================================
 # SITE EXTRACTION FROM BROWSER TITLES
@@ -99,11 +127,16 @@ KNOWN_SITES = {
     'openai platform': ('OpenAI', 'ai_tools', 0.8),
     'openai api': ('OpenAI', 'ai_tools', 0.8),
     'google ai studio': ('Google AI Studio', 'ai_tools', 0.8),
+    'gemini apps help': ('Gemini', 'ai_tools', 0.8),
+    'support.google.com/gemini': ('Gemini', 'ai_tools', 0.8),
     'langsmith': ('LangSmith', 'ai_tools', 0.8),
     'langchain': ('LangChain', 'ai_tools', 0.8),
 
     # Development
     'github': ('GitHub', 'development', 0.9),
+    'pull requests ·': ('GitHub', 'development', 0.9),
+    'edit release ·': ('GitHub', 'development', 0.9),
+    'issues ·': ('GitHub', 'development', 0.9),
     'gitlab': ('GitLab', 'development', 0.9),
     'localhost': ('Localhost', 'development', 1.0),
     '127.0.0.1': ('Localhost', 'development', 1.0),
@@ -147,6 +180,7 @@ KNOWN_SITES = {
 
     # Communication
     'gmail': ('Gmail', 'email', 0.3),
+    'mail.google.com': ('Gmail', 'email', 0.3),
     'outlook': ('Outlook', 'email', 0.3),
     'slack': ('Slack', 'communication', 0.3),
     'discord': ('Discord', 'communication', 0.2),
@@ -171,6 +205,15 @@ KNOWN_SITES = {
     'hacker news': ('Hacker News', 'news', 0.2),
     'techcrunch': ('TechCrunch', 'news', 0.1),
 
+    # Meetings & Events
+    'luma.com': ('Luma', 'meetings', 0.5),
+    '· luma': ('Luma', 'meetings', 0.5),
+    'meet.google.com': ('Google Meet', 'meetings', 0.5),
+    'meet -': ('Google Meet', 'meetings', 0.5),
+    'zoom.us': ('Zoom', 'meetings', 0.5),
+    'zoom recording': ('Zoom', 'meetings', 0.5),
+    'my recordings - zoom': ('Zoom', 'meetings', 0.5),
+
     # Business
     'stripe': ('Stripe', 'business', 0.6),
     'paypal': ('PayPal', 'business', 0.5),
@@ -178,6 +221,14 @@ KNOWN_SITES = {
     'salesforce': ('Salesforce', 'business', 0.5),
     'google analytics': ('Google Analytics', 'business', 0.6),
     'mixpanel': ('Mixpanel', 'business', 0.6),
+    'retool': ('Retool', 'business', 0.7),
+    'alma outbound': ('Retool (Alma)', 'business', 0.7),
+    'anysite': ('AnySite', 'business', 0.6),
+    'empatika': ('Empatika', 'business', 0.7),
+    'search console': ('Google Search Console', 'business', 0.7),
+    'search-console': ('Google Search Console', 'business', 0.7),
+    'bing webmaster': ('Bing Webmaster Tools', 'business', 0.7),
+    'checkout.link.com': ('Link Checkout', 'business', 0.5),
 
     # Video (mixed - could be work or entertainment)
     'youtube': ('YouTube', 'video', 0.0),  # Neutral - could be learning or entertainment
@@ -424,12 +475,14 @@ def analyze_web_data(web_events: List[dict], window_events: Optional[List[dict]]
         return {}
 
     # Build a set of time ranges when Chrome was in the foreground
+    # Note: YouTube detection specifically checks for Chrome (where aw-watcher-web-chrome runs)
+    # Other browsers like ChatGPT Atlas are separate - YouTube in Chrome is background when they're active
     chrome_active_ranges = []
     if window_events:
         for event in window_events:
             app = event.get('app', '')
-            if app in ['Google Chrome', 'Chrome', 'Chromium', 'Arc', 'Brave Browser', 'Safari', 'Firefox',
-                       'ChatGPT Atlas', 'Microsoft Edge', 'Opera', 'Vivaldi', 'Orion', 'SigmaOS']:
+            # Only Chrome/Chromium - the browser where the web watcher extension runs
+            if app in ['Google Chrome', 'Chrome', 'Chromium']:
                 try:
                     start = datetime.fromisoformat(event['timestamp'].replace('Z', '+00:00'))
                     duration = event.get('duration', 0)
@@ -464,6 +517,11 @@ def analyze_web_data(web_events: List[dict], window_events: Optional[List[dict]]
     audible_time = 0.0
     total_time = 0.0
     tab_counts = []
+
+    # YouTube foreground vs background tracking
+    youtube_foreground_time = 0.0  # Chrome active, actually watching
+    youtube_background_time = 0.0  # Chrome not active, background audio
+    youtube_titles = defaultdict(lambda: {'foreground': 0.0, 'background': 0.0})
 
     # Domain categorization
     PRODUCTIVE_DOMAINS = {
@@ -550,16 +608,27 @@ def analyze_web_data(web_events: List[dict], window_events: Optional[List[dict]]
         raw_duration = event['duration']
         domain = event['domain']
 
-        # Only count time when Chrome was actually in foreground
-        duration = is_chrome_active(event['timestamp'], raw_duration)
-        if duration <= 0:
+        # Calculate time when Chrome was actually in foreground
+        foreground_duration = is_chrome_active(event['timestamp'], raw_duration)
+        background_duration = raw_duration - foreground_duration
+
+        # Track YouTube foreground vs background separately
+        if domain == 'youtube.com':
+            title = event.get('title', 'Unknown').replace(' - YouTube', '')[:60]
+            youtube_foreground_time += foreground_duration
+            youtube_background_time += background_duration
+            youtube_titles[title]['foreground'] += foreground_duration
+            youtube_titles[title]['background'] += background_duration
+
+        # Only count foreground time for general stats
+        if foreground_duration <= 0:
             continue
 
-        domain_time[domain] += duration
-        total_time += duration
+        domain_time[domain] += foreground_duration
+        total_time += foreground_duration
 
         if event['audible']:
-            audible_time += duration
+            audible_time += foreground_duration
 
         if event['tab_count'] > 0:
             tab_counts.append(event['tab_count'])
@@ -595,13 +664,34 @@ def analyze_web_data(web_events: List[dict], window_events: Optional[List[dict]]
     avg_tabs = sum(tab_counts) / len(tab_counts) if tab_counts else 0
     max_tabs = max(tab_counts) if tab_counts else 0
 
+    # Build YouTube breakdown by title
+    youtube_title_breakdown = []
+    for title, times in sorted(youtube_titles.items(), key=lambda x: -(x[1]['foreground'] + x[1]['background']))[:10]:
+        total = times['foreground'] + times['background']
+        if total < 30:  # Skip titles with less than 30 seconds
+            continue
+        youtube_title_breakdown.append({
+            'title': title,
+            'foreground_mins': round(times['foreground'] / 60, 1),
+            'background_mins': round(times['background'] / 60, 1),
+            'total_mins': round(total / 60, 1),
+            'type': 'background_audio' if times['background'] > times['foreground'] else 'active_viewing'
+        })
+
     return {
         'domain_breakdown': domain_breakdown,
         'total_browser_hours': round(total_time / 3600, 2),
         'audible_hours': round(audible_time / 3600, 2),
         'audible_pct': round((audible_time / total_time * 100) if total_time > 0 else 0, 1),
         'avg_tabs': round(avg_tabs, 1),
-        'max_tabs': max_tabs
+        'max_tabs': max_tabs,
+        # YouTube foreground vs background breakdown
+        'youtube': {
+            'foreground_hours': round(youtube_foreground_time / 3600, 2),
+            'background_hours': round(youtube_background_time / 3600, 2),
+            'total_hours': round((youtube_foreground_time + youtube_background_time) / 3600, 2),
+            'title_breakdown': youtube_title_breakdown
+        } if youtube_foreground_time + youtube_background_time > 0 else None
     }
 
 
@@ -646,20 +736,45 @@ def categorize_activity(app: str, title: str) -> Tuple[str, float]:
     """
     Categorize an activity based on app and title.
     Returns (category_name, productivity_weight)
+
+    Special handling:
+    - Telegram: Check chat name against TELEGRAM_CHAT_RULES before falling back to default
+    - Browser apps: Use title-based categorization via KNOWN_SITES
     """
     title_lower = title.lower()
-    
+
+    # Special handling for Telegram - check chat-specific rules first
+    if app == "Telegram" and TELEGRAM_CHAT_RULES:
+        for category, rule_data in TELEGRAM_CHAT_RULES.items():
+            patterns = rule_data.get("patterns", [])
+            weight = rule_data.get("weight", 0.0)
+            for pattern in patterns:
+                if pattern.lower() in title_lower:
+                    return category, weight
+        # Fall through to default Telegram categorization if no chat match
+
+    # Special handling for browser apps - use title-based categorization
+    if app in BROWSER_APPS:
+        site_name, site_cat, site_weight = extract_site_from_title(title)
+        if site_cat != 'uncategorized':
+            return site_cat, site_weight
+        # Fall through to other rules if no site match
+
     for category, rules in CATEGORY_RULES.items():
+        # Skip special config sections (start with underscore or are dicts without "apps")
+        if category.startswith("_") or "apps" not in rules:
+            continue
+
         # Check app match
         for app_pattern in rules["apps"]:
             if app_pattern.lower() in app.lower():
                 return category, rules["weight"]
-        
+
         # Check title match
         for title_pattern in rules["titles"]:
             if title_pattern.lower() in title_lower:
                 return category, rules["weight"]
-    
+
     # Default: uncategorized
     return "uncategorized", 0.0
 
@@ -715,6 +830,10 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None, tz_name: Opt
     weighted_time = 0.0
     total_active_time = 0.0
 
+    # Telegram time tracking (for focus score calculation)
+    telegram_work_time = 0.0      # Telegram with weight >= 0.3 (productive)
+    telegram_personal_time = 0.0  # Telegram with weight < 0.3 (distracting)
+
     prev_app = None
     prev_title = None
     total_events = 0
@@ -765,6 +884,13 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None, tz_name: Opt
             # Aggregate by category
             category_time[category] += duration
 
+            # Track Telegram time separately (work vs personal)
+            if app == "Telegram":
+                if weight >= 0.3:  # product_work, content_creation, communication_work
+                    telegram_work_time += duration
+                else:  # communication_personal or uncategorized
+                    telegram_personal_time += duration
+
             # Aggregate by hour (using LOCAL timezone)
             hour = ts.hour
             hourly_activity[hour] += duration
@@ -806,18 +932,19 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None, tz_name: Opt
                     "ai_agent": None
                 }
 
-                # Check if this switch involves Terminal with AI agent
+                # Check if this switch involves Terminal/iTerm2 with AI agent
                 # Only count as AI-assisted if the OTHER app is NOT distracting
-                if prev_app == 'Terminal' or app == 'Terminal':
+                terminal_apps = ['Terminal', 'iTerm2']
+                if prev_app in terminal_apps or app in terminal_apps:
                     # Get the terminal title (current or previous)
-                    terminal_title = title if app == 'Terminal' else prev_title
+                    terminal_title = title if app in terminal_apps else prev_title
                     if terminal_title:
                         agent = detect_ai_agent(terminal_title)
                         if agent:
                             switch_data["ai_agent"] = agent
                             terminal_titles_by_switch[switch_idx] = terminal_title
                             # Only exclude from focus penalty if other app is NOT distracting
-                            other_app = prev_app if app == 'Terminal' else app
+                            other_app = prev_app if app in terminal_apps else app
                             other_cat, _ = categorize_activity(other_app, "")
                             if other_cat not in ['communication_personal', 'social_media', 'entertainment']:
                                 ai_assisted_switches.append(switch_idx)
@@ -898,19 +1025,42 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None, tz_name: Opt
     else:
         productivity_score = 0
     
-    # Focus score (based on context switching, excluding AI-assisted switches)
+    # Focus score (weighted by BOTH switches AND Telegram time)
+    # - Switch-based component (50% weight): penalizes context switching
+    # - Telegram-time component (50% weight): penalizes personal Telegram time
+    # - Work Telegram (weight >= 0.3) doesn't hurt focus score
+
     active_hours = sum(1 for h in hourly_activity.values() if h > 300)
     human_switches = total_switches - len(ai_assisted_switches)
     switches_per_active_hour = human_switches / max(1, active_hours)
 
+    # Switch-based score (0-100)
     if switches_per_active_hour < 50:
-        focus_score = 85
+        switch_score = 85
     elif switches_per_active_hour < 100:
-        focus_score = 70
+        switch_score = 70
     elif switches_per_active_hour < 200:
-        focus_score = 55
+        switch_score = 55
     else:
-        focus_score = 40
+        switch_score = 40
+
+    # Telegram time-based score (0-100)
+    # Personal Telegram time as % of active time determines penalty
+    telegram_personal_pct = (telegram_personal_time / max(1, total_active_time)) * 100
+
+    if telegram_personal_pct < 5:      # <5% personal Telegram = excellent focus
+        telegram_score = 90
+    elif telegram_personal_pct < 10:   # 5-10% = good
+        telegram_score = 75
+    elif telegram_personal_pct < 20:   # 10-20% = moderate
+        telegram_score = 60
+    elif telegram_personal_pct < 30:   # 20-30% = concerning
+        telegram_score = 45
+    else:                               # >30% = poor focus
+        telegram_score = 30
+
+    # Combined focus score: 50% switches + 50% Telegram time
+    focus_score = int(switch_score * 0.5 + telegram_score * 0.5)
     
     # Combined score
     combined_score = int(productivity_score * 0.6 + focus_score * 0.4)
@@ -977,12 +1127,25 @@ def analyze_csv_enhanced(filepath: str, days: Optional[int] = None, tz_name: Opt
             "combined_score": combined_score,
             "productivity_score": productivity_score,
             "focus_score": focus_score,
+            "focus_components": {
+                "switch_score": switch_score,
+                "telegram_score": telegram_score,
+                "switches_per_hour": round(switches_per_active_hour, 1),
+                "telegram_personal_pct": round(telegram_personal_pct, 1),
+            },
             "interpretation": (
                 "Excellent" if combined_score >= 80 else
                 "Good" if combined_score >= 60 else
                 "Moderate" if combined_score >= 40 else
                 "Needs improvement"
             )
+        },
+
+        "telegram_breakdown": {
+            "work_hours": round(telegram_work_time / 3600, 2),
+            "personal_hours": round(telegram_personal_time / 3600, 2),
+            "total_hours": round((telegram_work_time + telegram_personal_time) / 3600, 2),
+            "work_pct_of_telegram": round(telegram_work_time / max(1, telegram_work_time + telegram_personal_time) * 100, 1),
         },
         
         "time_totals": {
@@ -1197,7 +1360,29 @@ def format_report(summary: dict) -> str:
     report.append(f"| Productivity | {scores['productivity_score']}/100 | How much time on productive work |")
     report.append(f"| Focus | {scores['focus_score']}/100 | How well you maintained attention |")
     report.append("")
-    
+
+    # Focus score breakdown (if available)
+    focus_components = scores.get('focus_components', {})
+    telegram_breakdown = summary.get('telegram_breakdown', {})
+    if focus_components:
+        report.append("### Focus Score Breakdown\n")
+        report.append(f"Focus = 50% switch score + 50% Telegram time score\n")
+        report.append(f"| Component | Score | Details |")
+        report.append(f"|-----------|-------|---------|")
+        report.append(f"| Switch score | {focus_components.get('switch_score', 'N/A')}/100 | {focus_components.get('switches_per_hour', 0)} switches/active hour |")
+        report.append(f"| Telegram score | {focus_components.get('telegram_score', 'N/A')}/100 | {focus_components.get('telegram_personal_pct', 0)}% of time in personal Telegram |")
+        report.append("")
+
+    if telegram_breakdown and telegram_breakdown.get('total_hours', 0) > 0:
+        report.append("### Telegram Breakdown\n")
+        report.append(f"| Type | Hours | % of Telegram |")
+        report.append(f"|------|-------|---------------|")
+        report.append(f"| 🟢 Work (EDU, product, content) | {telegram_breakdown.get('work_hours', 0)}h | {telegram_breakdown.get('work_pct_of_telegram', 0)}% |")
+        report.append(f"| 🔴 Personal | {telegram_breakdown.get('personal_hours', 0)}h | {round(100 - telegram_breakdown.get('work_pct_of_telegram', 0), 1)}% |")
+        report.append(f"| **Total** | {telegram_breakdown.get('total_hours', 0)}h | 100% |")
+        report.append("")
+        report.append(f"*Work Telegram (weight ≥ 0.3) doesn't hurt focus score.*\n")
+
     # Category breakdown
     report.append("## 🎯 Time by Category\n")
     report.append("| Category | Hours | % | Type |")
@@ -1242,7 +1427,24 @@ def format_report(summary: dict) -> str:
                 prod_icon = "🔴"
             report.append(f"| {item['site'][:35]} | {item['hours']}h | {item['category']} | {prod_icon} |")
         report.append("")
-    
+
+    # YouTube foreground vs background breakdown
+    chrome_ext = summary.get('chrome_extension', {})
+    youtube_data = chrome_ext.get('youtube') if chrome_ext else None
+    if youtube_data and youtube_data.get('total_hours', 0) > 0.1:
+        report.append("### 📺 YouTube Breakdown\n")
+        report.append(f"**Total YouTube:** {youtube_data['total_hours']}h")
+        report.append(f"- 🎬 Active viewing (foreground): {youtube_data['foreground_hours']}h")
+        report.append(f"- 🎧 Background audio: {youtube_data['background_hours']}h\n")
+
+        if youtube_data.get('title_breakdown'):
+            report.append("| Mins | Type | Title |")
+            report.append("|------|------|-------|")
+            for item in youtube_data['title_breakdown'][:8]:
+                type_icon = "🎧" if item['type'] == 'background_audio' else "🎬"
+                report.append(f"| {item['total_mins']} | {type_icon} | {item['title'][:50]} |")
+            report.append("")
+
     # AI-Assisted Development (if detected)
     ai_dev = summary.get('ai_assisted_development', {})
     if ai_dev.get('agents_detected'):
@@ -1310,6 +1512,7 @@ Options:
     --report            Output human-readable markdown report instead of JSON
     --timezone TZ       Timezone (e.g., 'America/Los_Angeles'). Default: system local
     --config FILE       Custom category config JSON file
+    --calibrate         Show uncategorized activities for calibration
 
 Examples:
     # Analyze today's productivity
@@ -1323,6 +1526,9 @@ Examples:
 
     # Analyze from exported CSV
     python analyze_aw.py export.csv --report --timezone America/New_York
+
+    # Calibrate: show what needs configuring
+    python analyze_aw.py --fetch --from week --calibrate
 """)
         sys.exit(0)
 
@@ -1341,12 +1547,31 @@ Examples:
         config_idx = sys.argv.index("--config")
         if config_idx + 1 < len(sys.argv):
             config_path = sys.argv[config_idx + 1]
+    else:
+        # Default to category_config.json in the same directory as the script
+        default_config = Path(__file__).parent / "category_config.json"
+        if default_config.exists():
+            config_path = str(default_config)
 
-    # Update CATEGORY_RULES module-level variable
+    # Update module-level config variables
     if config_path:
-        loaded_rules = load_category_rules(config_path)
-        CATEGORY_RULES.clear()
-        CATEGORY_RULES.update(loaded_rules)
+        try:
+            with open(config_path, 'r') as f:
+                full_config = json.load(f)
+            # Load category rules (filter out special sections)
+            loaded_rules = {k: v for k, v in full_config.items()
+                          if not k.startswith('_') and isinstance(v, dict) and 'weight' in v}
+            CATEGORY_RULES.clear()
+            CATEGORY_RULES.update(loaded_rules)
+            # Load Telegram chat rules
+            TELEGRAM_CHAT_RULES.clear()
+            TELEGRAM_CHAT_RULES.update(load_telegram_chat_rules(full_config))
+            # Load browser apps list if present
+            if "browser_apps" in full_config:
+                BROWSER_APPS.clear()
+                BROWSER_APPS.extend(full_config["browser_apps"])
+        except Exception as e:
+            print(f"Warning: Could not load config from {config_path}: {e}", file=sys.stderr)
 
     # Determine filepath: either from argument or fetch from ActivityWatch
     filepath = None
@@ -1422,6 +1647,8 @@ Examples:
         web_events = None  # No web data when using CSV
         window_events_for_web = None
 
+    calibrate_mode = "--calibrate" in sys.argv
+
     try:
         summary = analyze_csv_enhanced(filepath, tz_name=tz_name)
 
@@ -1431,7 +1658,79 @@ Examples:
             if web_analysis:
                 summary['chrome_extension'] = web_analysis
 
-        if output_report:
+        if calibrate_mode:
+            # Show uncategorized and ambiguous activities for calibration
+            print("# CALIBRATION REPORT")
+            print("# Activities that need your input to categorize correctly.\n")
+
+            uncategorized = []
+            categories = summary.get('categories', {})
+            all_apps = summary.get('app_breakdown', {})
+
+            # Find items in system/uncategorized/neutral with significant time
+            for app_name, app_data in all_apps.items():
+                duration = app_data if isinstance(app_data, (int, float)) else app_data.get('duration', 0) if isinstance(app_data, dict) else 0
+                if duration > 300:  # More than 5 minutes
+                    # Check what category it ended up in
+                    cat = "unknown"
+                    for cat_name, cat_data in categories.items():
+                        if isinstance(cat_data, dict):
+                            cat_apps = cat_data.get('apps', {})
+                            if isinstance(cat_apps, dict) and app_name in cat_apps:
+                                cat = cat_name
+                                break
+                    if cat in ("system", "unknown", "browser_idle", "communication_personal"):
+                        hours = duration / 3600
+                        uncategorized.append((app_name, hours, cat))
+
+            if uncategorized:
+                uncategorized.sort(key=lambda x: -x[1])
+                print("## Uncategorized / Default-Categorized Apps")
+                print(f"{'App':<40} {'Hours':>8} {'Current Category':<25}")
+                print("-" * 75)
+                for app, hours, cat in uncategorized:
+                    print(f"{app:<40} {hours:>7.1f}h {cat:<25}")
+                print()
+                print("## What to do:")
+                print("Add these to scripts/category_config.json under the right category.")
+                print('Example: add "MyApp" to deep_work.apps or product_work.titles')
+            else:
+                print("All activities with >5 min are categorized. Config looks good!")
+
+            # Show Telegram chats breakdown if Telegram time exists
+            telegram_time = 0
+            for app_name, app_data in all_apps.items():
+                if "telegram" in app_name.lower():
+                    telegram_time += app_data if isinstance(app_data, (int, float)) else app_data.get('duration', 0) if isinstance(app_data, dict) else 0
+
+            if telegram_time > 600:
+                print(f"\n## Telegram Usage ({telegram_time/3600:.1f}h total)")
+                print("If you have work-related Telegram chats, add them to")
+                print('category_config.json under telegram_chats.product_work.patterns')
+                print("to avoid penalizing productive Telegram time.")
+
+            # Check for browser watcher
+            browser_cat_time = 0
+            for cat_name in ("social_media", "entertainment", "news", "learning", "development"):
+                cat_data = categories.get(cat_name, {})
+                if isinstance(cat_data, dict):
+                    browser_cat_time += cat_data.get('total_seconds', 0)
+
+            total_tracked = summary.get('total_tracked_seconds', summary.get('total_tracked_hours', 0) * 3600)
+            if isinstance(total_tracked, (int, float)) and total_tracked > 0 and browser_cat_time / max(total_tracked, 1) < 0.05:
+                print("\n## ⚠️ Browser Watcher Missing?")
+                print("Very little browser-categorized activity detected.")
+                print("Without aw-watcher-web, all browser time appears as 'Chrome' or 'Safari'")
+                print("with no site-level breakdown. Install the Chrome extension:")
+                print("  Chrome: Search 'ActivityWatch Web Watcher' in Chrome Web Store")
+                print("  Safari: Build from https://github.com/ActivityWatch/aw-watcher-web")
+
+            print("\n## Quick Summary")
+            print(f"Total tracked: {summary.get('total_tracked_hours', 0):.1f}h")
+            print(f"Productivity: {summary.get('productivity_score', 0):.0f}/100")
+            print(f"Focus: {summary.get('focus_score', 0):.0f}/100")
+
+        elif output_report:
             print(format_report(summary))
         else:
             print(json.dumps(summary, indent=2, ensure_ascii=False))
