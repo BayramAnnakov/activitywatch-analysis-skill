@@ -1586,13 +1586,21 @@ Examples:
 
         # Parse --from date
         from_date = None
+        # 'week' / 'Nd' / 'Nw' name a rolling range ending NOW, not a single day.
+        # Without this flag, a missing --to would clamp them to just their start day.
+        from_is_range = False
         if "--from" in sys.argv:
             from_idx = sys.argv.index("--from")
             if from_idx + 1 < len(sys.argv):
-                from_date = parse_date_arg(sys.argv[from_idx + 1], tz_name)
+                from_arg = sys.argv[from_idx + 1].lower().strip()
+                from_date = parse_date_arg(from_arg, tz_name)
                 if not from_date:
                     print(f"Error: Could not parse --from date: {sys.argv[from_idx + 1]}", file=sys.stderr)
                     sys.exit(1)
+                if from_arg == "week" or (
+                    len(from_arg) > 1 and from_arg[-1] in ("d", "w") and from_arg[:-1].isdigit()
+                ):
+                    from_is_range = True
         else:
             # Default to today
             from_date = parse_date_arg("today", tz_name)
@@ -1608,8 +1616,11 @@ Examples:
                     sys.exit(1)
                 # Set to end of day
                 to_date = to_date.replace(hour=23, minute=59, second=59)
+        elif from_is_range:
+            # Rolling range (week/Nd/Nw): run through the end of today, not the start day.
+            to_date = datetime.now(from_date.tzinfo).replace(hour=23, minute=59, second=59, microsecond=0)
         else:
-            # Default to end of from_date day
+            # Single day (today/yesterday/explicit date): end of the from_date day.
             to_date = from_date.replace(hour=23, minute=59, second=59)
 
         print(f"Fetching ActivityWatch data from {from_date} to {to_date}", file=sys.stderr)
